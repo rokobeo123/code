@@ -1,7 +1,7 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-#define ll ll
+#define ll long long
 #define pb push_back
 #define mp make_pair
 #define all(x) x.begin(), x.end()
@@ -27,12 +27,12 @@ int main() {
     cout << 0 << '\n' << 0 << '\n';
     return 0;
   }
-  vector<ll> a(n + 1);
+  vector<long long> a(n + 1);
   for (int i = 1; i <= n; i++) {
     cin >> a[i];
   }
   vector<int> f(n + 1, 1);
-  vector<ll> s(n + 1, 0);
+  vector<long long> s(n + 1, 0);
   for (int i = 1; i <= n; i++) {
     s[i] = a[i];
   }
@@ -40,7 +40,7 @@ int main() {
     for (int j = 1; j < i; j++) {
       if (a[j] < a[i]) {
         int lf = f[j] + 1;
-        ll sf = s[j] + a[i];
+        long long sf = s[j] + a[i];
         if (lf > f[i]) {
           f[i] = lf;
           s[i] = sf;
@@ -51,7 +51,7 @@ int main() {
     }
   }
   int ml = f[1];
-  ll ms = s[1];
+  long long ms = s[1];
   for (int i = 2; i <= n; i++) {
     if (f[i] > ml) {
       ml = f[i];
