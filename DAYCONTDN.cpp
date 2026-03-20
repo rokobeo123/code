@@ -1,7 +1,7 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-#define ll ll
+#define ll long long
 #define pb push_back
 #define mp make_pair
 #define all(x) x.begin(), x.end()
@@ -64,3 +64,4 @@ int main() {
   cout << ms << '\n';
   return 0;
 }
+

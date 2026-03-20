@@ -20,7 +20,7 @@ void fre(const char *tenbai) {
 }
 int main() {
   fasteio();
-  fre("QUANMA");
+  // fre("QUANMA");
   ll m, n;
   cin >> m >> n;
 
