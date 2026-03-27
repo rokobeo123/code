@@ -13,6 +13,7 @@ using namespace std;
   ios::sync_with_stdio(false); \
   cin.tie(nullptr);            \
   cout.tie(nullptr);
+
 void fre(const char *tenbai)
 {
   string input_file = string(tenbai) + ".INP";
@@ -20,44 +21,43 @@ void fre(const char *tenbai)
   freopen(input_file.c_str(), "r", stdin);
   freopen(output_file.c_str(), "w", stdout);
 }
-const ll MOD = 1e9 + 7;
-const int A = 1e5 + 1;
 
 int main()
 {
   fasteio();
-  int n;
-  int a[100005];
-  int freq[MAXN + 5], uoc[MAXN + 5], f[MAXN + 5], p2[MAXN + 5];
-  cin >> n;
-  for (int i = 1; i <= n; i++)
-  {
+  fre("LUYENTAP");
+
+  int n, m;
+  cin >> n >> m;
+
+  vector<ll> a(n), b(m);
+  for (int i = 0; i < n; i++)
     cin >> a[i];
-    freq[a[i]]++;
-  }
-  for (int u = 1; u <= MAXN; u++)
+  for (int i = 0; i < m; i++)
+    cin >> b[i];
+
+  sort(all(b));
+
+  vector<ll> pre(m + 1, 0);
+  for (int i = 0; i < m; i++)
+    pre[i + 1] = pre[i] + b[i];
+
+  for (int i = 0; i < n; i++)
   {
-    for (int j = u; j <= MAXN; j += u)
+    ll s = a[i];
+    while (true)
     {
-      uoc[u] += freq[j];
+      int pos = upper_bound(all(b), s) - b.begin();
+      ll ns = a[i] + pre[pos];
+      if (ns == s)
+        break;
+      s = ns;
     }
+    cout << s;
+    if (i < n - 1)
+      cout << " ";
   }
-  p2[0] = 1;
-  for (int i = 1; i <= n; i++)
-  {
-    p2[i] = (p2[i - 1] * 2) % MOD;
-  }
-  for (int u = 1; u <= MAXN; u++)
-  {
-    f[u] = (p2[uoc[u]] - 1 + MOD) % MOD;
-  }
-  for (int u = MAXN; u >= 1; u--)
-  {
-    for (int v = 2 * u; v <= MAXN; v += u)
-    {
-      f[u] = (f[u] - f[v] + MOD) % MOD;
-    }
-  }
-  cout << f[1] << endl;
+  cout << endl;
+
   return 0;
 }
