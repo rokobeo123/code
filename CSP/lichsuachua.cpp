@@ -19,7 +19,7 @@ using namespace std;
     cout.tie(nullptr);
 void fre(const char *tenbai)
 {
-    string input_file = string(tenbai) + ".INP";
+    string input_file = string(tenbai) + ".INP";  
     string output_file = string(tenbai) + ".OUT";
     freopen(input_file.c_str(), "r", stdin);
     freopen(output_file.c_str(), "w", stdout);
