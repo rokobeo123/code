@@ -50,6 +50,7 @@ void update(ll id, ll l, ll r, ll x, ll y, ll val){
     if(x <= l && r <= y){
         tree[id].lazy += val;
         tree[id].maxv += val;
+
         return;
     }
     ll mid = (r + l) / 2;

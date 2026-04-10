@@ -22,7 +22,15 @@ void fre(const char *tenbai) {
 }
 const ll INF = 1e9;
 const ll MOD = 1e9 +7;
-
+ll id(char c) {
+  if (c == 'O') {
+    return 0;
+  }
+  if (c == 'L') {
+    return 1;
+  }
+  return 2;
+}
 int main() {
   fasteio();
 
@@ -32,15 +40,9 @@ int main() {
   int n = (int)s.size();
   ll total = 1LL * n * (n + 1) / 2;
 
-  ll not_beautiful = 0;
+  ll xau = 0;
   int cnt[3] = {0, 0, 0};
   int l = 0;
-
-  auto id = [&](char c) {
-    if (c == 'O') return 0;
-    if (c == 'L') return 1;
-    return 2;
-  };
 
   for (int r = 0; r < n; r++) {
     cnt[id(s[r])]++;
@@ -50,9 +52,9 @@ int main() {
       l++;
     }
 
-    not_beautiful += (r - l + 1);
+    xau += (r - l + 1);
   }
 
-  cout << total - not_beautiful;
+  cout << total - xau;
   return 0;
 }
