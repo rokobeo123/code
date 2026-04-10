@@ -8,6 +8,7 @@ using namespace std;
 #define fi first
 #define se second
 #define umap unordered_map
+#define endl '\n'
 #define allr(x) x.rbegin(), x.rend()
 #define fasteio()                                                              \
   ios::sync_with_stdio(false);                                                 \
@@ -24,38 +25,34 @@ const ll MOD = 1e9 +7;
 
 int main() {
   fasteio();
-  int n;
-  cin >> n;
 
-  vector<int> a(n);
-  for (int i = 0; i < n; i++) {
-    cin >> a[i];
-  }
-  vector<ll> dp(n + 1, 0);
-  dp[0] = 1;
-  for (int x : a) {
-    vector<int> so;
-    for (int d = 1; 1LL * d * d <= x; d++) {
-      if (x % d != 0) {
-        continue;
-      }
-      if (d <= n) {
-        so.pb(d);
-      }
-      int o = x / d;
-      if (o != d && o <= n) {
-        so.pb(o);
-      }
+  string s;
+  cin >> s;
+
+  int n = (int)s.size();
+  ll total = 1LL * n * (n + 1) / 2;
+
+  ll not_beautiful = 0;
+  int cnt[3] = {0, 0, 0};
+  int l = 0;
+
+  auto id = [&](char c) {
+    if (c == 'O') return 0;
+    if (c == 'L') return 1;
+    return 2;
+  };
+
+  for (int r = 0; r < n; r++) {
+    cnt[id(s[r])]++;
+
+    while (cnt[0] > 2 || cnt[1] > 2 || cnt[2] > 2) {
+      cnt[id(s[l])]--;
+      l++;
     }
-    sort(allr(so));
-    for (int len : so) {
-      dp[len] = (dp[len] + dp[len - 1]) % MOD;
-    }
+
+    not_beautiful += (r - l + 1);
   }
-  ll ans = 0;
-  for (int len = 1; len <= n; len++) {
-    ans = (ans + dp[len]) % MOD;
-  }
-  cout << ans;
+
+  cout << total - not_beautiful;
   return 0;
 }
