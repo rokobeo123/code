@@ -41,7 +41,7 @@ void build(ll id, ll l, ll r){
     ll mid = (r + l) / 2;
     build(id * 2, l, mid);
     build(id * 2 + 1, mid + 1, r);
-    tree[id].sum = tree[id * 2].sum + tree[id * 2 + 1].sum;
+    tree[id].sum = tree[id *  2].sum + tree[id * 2 + 1].sum;
     tree[id].l = max(tree[id * 2].l, tree[id * 2].sum + tree[id * 2 + 1].l);
     tree[id].r = max(tree[id * 2 + 1].r, tree[id * 2 + 1].sum + tree[id * 2].r);
     tree[id].ans = max({tree[id * 2].ans, tree[id * 2 + 1].ans, tree[id * 2].r + tree[id * 2 + 1].l});
