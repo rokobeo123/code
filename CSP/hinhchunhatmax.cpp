@@ -22,30 +22,32 @@ void fre(const char *tenbai) {
 }
 const ll INF = 1e9;
 const ll MOD = 1e9 +7;
-
-int main() {
-  fasteio();
-  ll n;
-  cin >> n;
-    vector<ll> a(n);
-    vector<ll> res(n);
-    for(int i = 0; i < n; i++) {
-        cin >> a[i];
-    }
+ll solve(ll n, const vector<ll> &h){
     stack<ll> st;
-    for(int i = 0; i < n; i++) {
-        while(!st.empty() && a[st.top()] <= a[i]) {
+    st.push(0);
+    ll res=0;
+    for(int i=1;i<n;i++){
+        while(!st.empty() && h[st.top()]>=h[i]){
+            ll height=h[st.top()];
             st.pop();
-        }
-        if(st.empty()) {
-            res[i] = 0;
-        } else {
-            res[i] = st.top() + 1;
+            ll width=(st.empty())?i:(i-st.top()-1);
+            res=max(res,height*width);
         }
         st.push(i);
     }
-    for(auto x : res) {
-        cout << x << " ";
-    }
+    return res;
+}
+int main() {
+  fasteio();
+  ll m,n;
+  cin >> m >> n;
+  vector<ll> h(n);
+  vector<ll> w(n);
+  for(int i=0;i<n;i++){
+    cin >> h[i];
+    w[i]=m-h[i];
+  }
+  stack<ll> st;
+  cout << max(solve(n,h),solve(n,w)) << endl;
   return 0;
 }

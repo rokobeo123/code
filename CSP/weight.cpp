@@ -22,30 +22,38 @@ void fre(const char *tenbai) {
 }
 const ll INF = 1e9;
 const ll MOD = 1e9 +7;
-
+ll solve(ll n, const vector<ll> &h, bool ifmax){
+    vector<ll> l(n), r(n);
+    stack<ll> st;
+    for(int i=0;i<n;i++){
+        while(!st.empty() && ((ifmax && h[st.top()]<h[i]) || (!ifmax && h[st.top()]>h[i]))){
+            st.pop();
+        }
+        l[i]=(st.empty())?-1:st.top();
+        st.push(i);
+    }
+    while(!st.empty()) st.pop();
+    for(int i=n-1;i>=0;i--){
+        while(!st.empty() && ((ifmax && h[st.top()]<=h[i]) || (!ifmax && h[st.top()]>=h[i]))){
+            st.pop();
+        }
+        r[i]=(st.empty())?n:st.top();
+        st.push(i);
+    }
+    ll res=0;
+    for(int i=0;i<n;i++){
+        res+=(r[i]-i)*(i-l[i])*h[i];
+    }
+    return res;
+}
 int main() {
   fasteio();
   ll n;
-  cin >> n;
+    cin >> n;
     vector<ll> a(n);
-    vector<ll> res(n);
     for(int i = 0; i < n; i++) {
         cin >> a[i];
     }
-    stack<ll> st;
-    for(int i = 0; i < n; i++) {
-        while(!st.empty() && a[st.top()] <= a[i]) {
-            st.pop();
-        }
-        if(st.empty()) {
-            res[i] = 0;
-        } else {
-            res[i] = st.top() + 1;
-        }
-        st.push(i);
-    }
-    for(auto x : res) {
-        cout << x << " ";
-    }
+    cout << solve(n,a,true)-solve(n,a,false) << endl;
   return 0;
 }

@@ -25,27 +25,27 @@ const ll MOD = 1e9 +7;
 
 int main() {
   fasteio();
-  ll n;
-  cin >> n;
+  ll n, k;
+    cin >> n >> k;
     vector<ll> a(n);
-    vector<ll> res(n);
     for(int i = 0; i < n; i++) {
         cin >> a[i];
     }
-    stack<ll> st;
+    deque<ll> dq;
     for(int i = 0; i < n; i++) {
-        while(!st.empty() && a[st.top()] <= a[i]) {
-            st.pop();
+        while(!dq.empty() && a[dq.back()] >= a[i]) {
+            dq.pop_back();
         }
-        if(st.empty()) {
-            res[i] = 0;
-        } else {
-            res[i] = st.top() + 1;
+        dq.push_back(i);
+        if(dq.front() + k <= i) {
+            dq.pop_front();
         }
-        st.push(i);
-    }
-    for(auto x : res) {
-        cout << x << " ";
+        if(i >= k - 1) {
+            cout << a[dq.front()] << endl;
+            if(dq.front() == i - k + 1) {
+                dq.pop_front();
+            }
+        }
     }
   return 0;
 }

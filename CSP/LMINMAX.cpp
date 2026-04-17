@@ -25,27 +25,35 @@ const ll MOD = 1e9 +7;
 
 int main() {
   fasteio();
-  ll n;
-  cin >> n;
+    ll n,k;
+    cin >> n >> k;
     vector<ll> a(n);
-    vector<ll> res(n);
     for(int i = 0; i < n; i++) {
         cin >> a[i];
     }
-    stack<ll> st;
-    for(int i = 0; i < n; i++) {
-        while(!st.empty() && a[st.top()] <= a[i]) {
-            st.pop();
+    deque<ll> dq_max;
+    deque<ll> dq_min;
+    ll l=0, ans=0;
+    for(int i = 0; i < n; i++){
+        while(!dq_max.empty() && a[dq_max.back()] <= a[i]) {
+            dq_max.pop_back();
         }
-        if(st.empty()) {
-            res[i] = 0;
-        } else {
-            res[i] = st.top() + 1;
+        dq_max.push_back(i);
+        while(!dq_min.empty() && a[dq_min.back()] >= a[i]) {
+            dq_min.pop_back();
         }
-        st.push(i);
+        dq_min.push_back(i);
+        while(!dq_min.empty()&& !dq_max.empty() && a[dq_max.front()] - a[dq_min.front()] > k) {
+            l++;
+            if(dq_max.front() < l) {
+                dq_max.pop_front();
+            }
+            if(dq_min.front() < l) {
+                dq_min.pop_front();
+            }
+        }
+        ans = max(ans, i - l + 1);
     }
-    for(auto x : res) {
-        cout << x << " ";
-    }
+    cout << ans << endl;
   return 0;
 }
