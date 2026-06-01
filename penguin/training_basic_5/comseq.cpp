@@ -22,39 +22,38 @@ void fre(const char *tenbai) {
 }
 const ll INF = 1e9;
 const ll MOD = 1e9 +7;
-const ll maxn = 1e5 + 5;
-ll tree[maxn];
-ll f[maxn];
-void build(ll idx, ll l, ll r){
-  if(l==r){
-    tree[idx] = f[l]*l;
-    return;
-  }
-  ll mid = (l+r)/2;
-  build(idx*2, l, mid);
-  build(idx*2+1, mid+1, r);
-  tree[idx] = tree[idx*2]+tree[idx*2+1];
-}
-void update(ll idx, ll l, ll r, ll pos, ll val){
-  if(l==r){
-      tree[idx]= val*f[pos];
-      return;
-  }
-  ll mid=(l+r)/2;
-  if(idx <= mid) update(idx*2,l,mid,pos,val);
-  else update(idx*2+1,mid+1,r,pos,val);
-  tree[idx] = tree[idx*2]+tree[idx*2+1];
-}
-ll query(ll idx, ll l, ll r, ll u, ll v){
-  if(u < l || v > r) return -INF;
-  if(u >=l && v <=r) return tree[idx];
-  ll mid=(l+r)/2;
-  return query(idx*2,l,mid,u,v) + query(idx*2+1,mid+1,r,u,v);
-}
+
 int main() {
   fasteio();
-  ll n,s,q;
-  cin >> n >> s >> q;
-  for(int i=)
+  ll n,m;
+    cin >> n >> m;
+  vector<ll> a(n);
+  vector<ll> b(m);
+  for(int i=0;i<n;i++){
+    cin >> a[i];
+  }
+    for(int i=0;i<m;i++){
+        cin >> b[i];
+    }
+    vector<vector<ll>> dp(n+1, vector<ll>(m+1));
+    dp[0][0] = 1;
+    for(int i=1;i<=n;i++){
+        dp[i][0] = 1;
+    }
+    for(int j=1;j<=m;j++){
+        dp[0][j] = 1;
+    }
+    for(int i=1;i<=n;i++){
+        for(int j=1;j<=m;j++){
+            if(a[i-1]==b[j-1]){
+                dp[i][j] = (dp[i-1][j]+dp[i][j-1])%MOD;
+            }
+            else{
+                dp[i][j] = (dp[i-1][j]+dp[i][j-1]-dp[i-1][j-1])%MOD;
+            }
+        }
+    }
+    cout << dp[n][m]%MOD;
+  //cerr << 1000 * clock() / CLOCKS_PER_SEC;
   return 0;
 }

@@ -22,39 +22,29 @@ void fre(const char *tenbai) {
 }
 const ll INF = 1e9;
 const ll MOD = 1e9 +7;
-const ll maxn = 1e5 + 5;
-ll tree[maxn];
-ll f[maxn];
-void build(ll idx, ll l, ll r){
-  if(l==r){
-    tree[idx] = f[l]*l;
-    return;
-  }
-  ll mid = (l+r)/2;
-  build(idx*2, l, mid);
-  build(idx*2+1, mid+1, r);
-  tree[idx] = tree[idx*2]+tree[idx*2+1];
-}
-void update(ll idx, ll l, ll r, ll pos, ll val){
-  if(l==r){
-      tree[idx]= val*f[pos];
-      return;
-  }
-  ll mid=(l+r)/2;
-  if(idx <= mid) update(idx*2,l,mid,pos,val);
-  else update(idx*2+1,mid+1,r,pos,val);
-  tree[idx] = tree[idx*2]+tree[idx*2+1];
-}
-ll query(ll idx, ll l, ll r, ll u, ll v){
-  if(u < l || v > r) return -INF;
-  if(u >=l && v <=r) return tree[idx];
-  ll mid=(l+r)/2;
-  return query(idx*2,l,mid,u,v) + query(idx*2+1,mid+1,r,u,v);
-}
 int main() {
   fasteio();
-  ll n,s,q;
-  cin >> n >> s >> q;
-  for(int i=)
+  ll n;
+  cin >> n;
+  string s;
+    cin >> s;
+    vector<pair<ll, ll>> dp(2);
+    dp[0]={0,s[0]=='<'?0:-1};
+    dp[1]={0,s[0]=='>'?0:-1};
+    for(int i=1;i<n;i++){
+        vector<pair<ll, ll>> newdp(2);
+        ll val = s[i]=='<'?0:-1;
+        pair<ll, ll> l= {dp[0].fi, val+dp[0].se};
+        pair<ll, ll> r= {dp[1].fi+1, val+dp[1].se};
+        newdp[0] = max(l, r);
+        ll val2 = s[i]=='>'?0:-1;
+        pair<ll,ll> lr = {dp[0].fi, val2+dp[0].se};
+        pair<ll,ll> rr = {dp[1].fi, val2+dp[1].se};
+        newdp[1] = max(lr, rr);
+        dp = newdp;
+    }
+    pair<ll, ll> res = max(dp[0], dp[1]);
+    cout << res.fi << " " << -res.se;
+  //cerr << 1000 * clock() / CLOCKS_PER_SEC;
   return 0;
 }

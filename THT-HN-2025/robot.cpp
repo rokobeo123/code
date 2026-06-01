@@ -22,39 +22,35 @@ void fre(const char *tenbai) {
 }
 const ll INF = 1e9;
 const ll MOD = 1e9 +7;
-const ll maxn = 1e5 + 5;
-ll tree[maxn];
-ll f[maxn];
-void build(ll idx, ll l, ll r){
-  if(l==r){
-    tree[idx] = f[l]*l;
-    return;
-  }
-  ll mid = (l+r)/2;
-  build(idx*2, l, mid);
-  build(idx*2+1, mid+1, r);
-  tree[idx] = tree[idx*2]+tree[idx*2+1];
-}
-void update(ll idx, ll l, ll r, ll pos, ll val){
-  if(l==r){
-      tree[idx]= val*f[pos];
-      return;
-  }
-  ll mid=(l+r)/2;
-  if(idx <= mid) update(idx*2,l,mid,pos,val);
-  else update(idx*2+1,mid+1,r,pos,val);
-  tree[idx] = tree[idx*2]+tree[idx*2+1];
-}
-ll query(ll idx, ll l, ll r, ll u, ll v){
-  if(u < l || v > r) return -INF;
-  if(u >=l && v <=r) return tree[idx];
-  ll mid=(l+r)/2;
-  return query(idx*2,l,mid,u,v) + query(idx*2+1,mid+1,r,u,v);
-}
+
 int main() {
   fasteio();
-  ll n,s,q;
-  cin >> n >> s >> q;
-  for(int i=)
+  ll n;
+  cin >> n;
+  vector<ll> xs(n), ys(n);
+  for (ll i = 0; i < n; i++) cin >> xs[i] >> ys[i];
+  ll xmin = xs[0], xmax = xs[0], ymin = ys[0], ymax = ys[0];
+  for (ll i = 1; i < n; i++) {
+    xmin = min(xmin, xs[i]);
+    ymin = min(ymin, ys[i]);
+    ymax = max(ymax, ys[i]);
+    xmax = max(xmax, xs[i]);
+  }
+  ll ans= INF, bestx = xmin, besty = ymin;
+  for (ll x = xmin; x <= xmax; x++) {
+    for (ll y = ymin; y <= ymax; y++) {
+      ll ton = 0;
+      for (ll i = 0; i < n; ++i) {
+        ton += abs(xs[i] - x) + abs(ys[i] - y);
+      }
+      if (ton < ans) {
+        ans = ton;
+        bestx = x;
+        besty = y;
+      }
+    }
+  }
+
+  cout << ans << '\n';
   return 0;
 }

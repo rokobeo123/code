@@ -27,17 +27,20 @@ int main() {
   fasteio();
   ll n;
   cin >> n;
-  string s;
-  cin >> s;
-  ll ans=0;
-  ll cnt=0;
-    for(char c : s) {
-        if(c == '>'){
-            cnt++;
-        } else {
-            ans += cnt;
-        }
+  if(n==0){
+      cout << 0 << endl;
+      return 0;
+  }
+  ll minn=LLONG_MAX;
+  ll x = abs(n);
+  for(int i=1; i <= x/i;i++){
+    if(x%i==0){
+        ll j = x/i;
+        if(n >= 0) minn =min(minn, abs(i-j));
+        else minn = min(minn, j+i);
     }
-    cout << ans << endl;
+  }
+    cout << minn << endl;
+  //cerr << 1000 * clock() / CLOCKS_PER_SEC;
   return 0;
 }

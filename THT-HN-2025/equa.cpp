@@ -1,3 +1,4 @@
+
 #include <bits/stdc++.h>
 using namespace std;
 
@@ -21,40 +22,43 @@ void fre(const char *tenbai) {
   freopen(output_file.c_str(), "w", stdout);
 }
 const ll INF = 1e9;
-const ll MOD = 1e9 +7;
-const ll maxn = 1e5 + 5;
-ll tree[maxn];
-ll f[maxn];
-void build(ll idx, ll l, ll r){
-  if(l==r){
-    tree[idx] = f[l]*l;
-    return;
+const ll MOD = 1e9 + 7;
+vector<ll> uoc;
+vector<pair<ll,ll>> res;
+void uocso(ll n) {
+  for (ll i = 1; i * i <= n; i++) {
+    if (n % i == 0) {
+      uoc.pb(i);
+      uoc.pb(-i);
+      if (i * i != n) {
+        uoc.pb(n / i);
+        uoc.pb(-(n / i));
+      }
+    }
   }
-  ll mid = (l+r)/2;
-  build(idx*2, l, mid);
-  build(idx*2+1, mid+1, r);
-  tree[idx] = tree[idx*2]+tree[idx*2+1];
 }
-void update(ll idx, ll l, ll r, ll pos, ll val){
-  if(l==r){
-      tree[idx]= val*f[pos];
-      return;
-  }
-  ll mid=(l+r)/2;
-  if(idx <= mid) update(idx*2,l,mid,pos,val);
-  else update(idx*2+1,mid+1,r,pos,val);
-  tree[idx] = tree[idx*2]+tree[idx*2+1];
-}
-ll query(ll idx, ll l, ll r, ll u, ll v){
-  if(u < l || v > r) return -INF;
-  if(u >=l && v <=r) return tree[idx];
-  ll mid=(l+r)/2;
-  return query(idx*2,l,mid,u,v) + query(idx*2+1,mid+1,r,u,v);
+void check(ll d, ll n, ll a, ll b, ll c) {
+  if(d==0) return;
+  if((d-b)%c!=0) return;
+    ll x = (d - b) / c;
+    if (x < 0) return;
+    ll p=n-a*x;
+    if(p%d!=0) return;
+    ll y=p/d;
+    if(y<0) return;
+    res.pb({x,y});
 }
 int main() {
   fasteio();
-  ll n,s,q;
-  cin >> n >> s >> q;
-  for(int i=)
+    ll n,a,b,c;
+    cin >> n >> a >> b >> c;
+    ll so= n*c +a*b;
+    uocso(abs(so));
+    for(auto i :uoc) check (i,n,a,b,c);
+    sort(all(res));
+    res.erase(unique(all(res)),res.end());
+    cout << res.size() << endl;
+    for(auto i : res) cout << i.fi << " " << i.se << endl;
   return 0;
 }
+

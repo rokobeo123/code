@@ -22,39 +22,29 @@ void fre(const char *tenbai) {
 }
 const ll INF = 1e9;
 const ll MOD = 1e9 +7;
-const ll maxn = 1e5 + 5;
-ll tree[maxn];
-ll f[maxn];
-void build(ll idx, ll l, ll r){
-  if(l==r){
-    tree[idx] = f[l]*l;
-    return;
-  }
-  ll mid = (l+r)/2;
-  build(idx*2, l, mid);
-  build(idx*2+1, mid+1, r);
-  tree[idx] = tree[idx*2]+tree[idx*2+1];
-}
-void update(ll idx, ll l, ll r, ll pos, ll val){
-  if(l==r){
-      tree[idx]= val*f[pos];
-      return;
-  }
-  ll mid=(l+r)/2;
-  if(idx <= mid) update(idx*2,l,mid,pos,val);
-  else update(idx*2+1,mid+1,r,pos,val);
-  tree[idx] = tree[idx*2]+tree[idx*2+1];
-}
-ll query(ll idx, ll l, ll r, ll u, ll v){
-  if(u < l || v > r) return -INF;
-  if(u >=l && v <=r) return tree[idx];
-  ll mid=(l+r)/2;
-  return query(idx*2,l,mid,u,v) + query(idx*2+1,mid+1,r,u,v);
+ll n, dp[25][(1 << 21) + 1];
+bool a[25][25];
+ll ison(ll mask, ll i){
+    return mask >> i & 1;
 }
 int main() {
   fasteio();
-  ll n,s,q;
-  cin >> n >> s >> q;
-  for(int i=)
+    cin >> n;
+    for(int i = 1; i <= n; i++){
+        for(int j = 1; j <= n; j++){
+            cin >> a[i][j];
+        }
+    }
+    dp[0][0] = 1;
+        for(int mask =0 ;mask < (1 << n); mask++){
+            int i = __builtin_popcount(mask);
+            for(int j = 1; j <= n; j++){
+                if(a[i+1][j] && !ison(mask, j-1)){
+                    dp[i+1][mask | (1 << (j-1))] += dp[i][mask];
+                    dp[i+1][mask | (1 << (j-1))] %= MOD;
+                }
+            }
+        }
+    cout << dp[n][(1 << n) - 1] << endl;
   return 0;
 }

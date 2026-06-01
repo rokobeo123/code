@@ -22,39 +22,30 @@ void fre(const char *tenbai) {
 }
 const ll INF = 1e9;
 const ll MOD = 1e9 +7;
-const ll maxn = 1e5 + 5;
-ll tree[maxn];
-ll f[maxn];
-void build(ll idx, ll l, ll r){
-  if(l==r){
-    tree[idx] = f[l]*l;
-    return;
-  }
-  ll mid = (l+r)/2;
-  build(idx*2, l, mid);
-  build(idx*2+1, mid+1, r);
-  tree[idx] = tree[idx*2]+tree[idx*2+1];
-}
-void update(ll idx, ll l, ll r, ll pos, ll val){
-  if(l==r){
-      tree[idx]= val*f[pos];
-      return;
-  }
-  ll mid=(l+r)/2;
-  if(idx <= mid) update(idx*2,l,mid,pos,val);
-  else update(idx*2+1,mid+1,r,pos,val);
-  tree[idx] = tree[idx*2]+tree[idx*2+1];
-}
-ll query(ll idx, ll l, ll r, ll u, ll v){
-  if(u < l || v > r) return -INF;
-  if(u >=l && v <=r) return tree[idx];
-  ll mid=(l+r)/2;
-  return query(idx*2,l,mid,u,v) + query(idx*2+1,mid+1,r,u,v);
+ll n,k;
+ll dp[1 << 15][16];
+ll solve(ll mask, ll last){
+    if(mask == (1 << n) - 1) return 1;
+    if(dp[mask][last] != -1) return dp[mask][last];
+    ll cnt =0;
+    for(int i = 0; i < n; i++){
+        if(!(mask & (1 << i ))){
+            if(last ==0 || abs(i + 1  - last) <= k){
+                cnt += solve(mask | (1 << i), i+1);
+            }
+        }
+    }
+    return dp[mask][last] = cnt;
 }
 int main() {
   fasteio();
-  ll n,s,q;
-  cin >> n >> s >> q;
-  for(int i=)
+    ll t;
+    cin >> t;
+    while(t--){
+        cin >> n >> k;
+        memset(dp, -1, sizeof(dp));
+        cout << solve(0, 0) << endl;
+    }
+  //cerr << 1000 * clock() / CLOCKS_PER_SEC;
   return 0;
 }

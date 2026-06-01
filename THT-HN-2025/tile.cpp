@@ -22,39 +22,29 @@ void fre(const char *tenbai) {
 }
 const ll INF = 1e9;
 const ll MOD = 1e9 +7;
-const ll maxn = 1e5 + 5;
-ll tree[maxn];
-ll f[maxn];
-void build(ll idx, ll l, ll r){
-  if(l==r){
-    tree[idx] = f[l]*l;
-    return;
-  }
-  ll mid = (l+r)/2;
-  build(idx*2, l, mid);
-  build(idx*2+1, mid+1, r);
-  tree[idx] = tree[idx*2]+tree[idx*2+1];
-}
-void update(ll idx, ll l, ll r, ll pos, ll val){
-  if(l==r){
-      tree[idx]= val*f[pos];
-      return;
-  }
-  ll mid=(l+r)/2;
-  if(idx <= mid) update(idx*2,l,mid,pos,val);
-  else update(idx*2+1,mid+1,r,pos,val);
-  tree[idx] = tree[idx*2]+tree[idx*2+1];
-}
-ll query(ll idx, ll l, ll r, ll u, ll v){
-  if(u < l || v > r) return -INF;
-  if(u >=l && v <=r) return tree[idx];
-  ll mid=(l+r)/2;
-  return query(idx*2,l,mid,u,v) + query(idx*2+1,mid+1,r,u,v);
-}
+
 int main() {
   fasteio();
-  ll n,s,q;
-  cin >> n >> s >> q;
-  for(int i=)
+  int m, n;
+  ll k;
+  cin >> m >> n >> k;
+  if (k != m) {
+    cout << 0 << '\n';
+    return 0;
+  }
+  vector<vector<ll>> dp(n + 1, vector<ll>(m, 0));
+  dp[0][0] = 1;
+  for (int col = 0; col < n; col++) {
+    for (int r = 0; r < m; r++) {
+      if (dp[col][r] == 0) continue;
+      ll b = dp[col][r];
+      if (r == 0) {
+        dp[col + 1][0] = (dp[col + 1][0] + b) % MOD;
+      }
+      dp[col + 1][(r + 1) % m] = (dp[col + 1][(r + 1) % m] + b) % MOD;
+    }
+  }
+
+  cout << dp[n][0] << '\n';
   return 0;
 }

@@ -22,39 +22,42 @@ void fre(const char *tenbai) {
 }
 const ll INF = 1e9;
 const ll MOD = 1e9 +7;
-const ll maxn = 1e5 + 5;
-ll tree[maxn];
-ll f[maxn];
-void build(ll idx, ll l, ll r){
-  if(l==r){
-    tree[idx] = f[l]*l;
-    return;
-  }
-  ll mid = (l+r)/2;
-  build(idx*2, l, mid);
-  build(idx*2+1, mid+1, r);
-  tree[idx] = tree[idx*2]+tree[idx*2+1];
-}
-void update(ll idx, ll l, ll r, ll pos, ll val){
-  if(l==r){
-      tree[idx]= val*f[pos];
-      return;
-  }
-  ll mid=(l+r)/2;
-  if(idx <= mid) update(idx*2,l,mid,pos,val);
-  else update(idx*2+1,mid+1,r,pos,val);
-  tree[idx] = tree[idx*2]+tree[idx*2+1];
-}
-ll query(ll idx, ll l, ll r, ll u, ll v){
-  if(u < l || v > r) return -INF;
-  if(u >=l && v <=r) return tree[idx];
-  ll mid=(l+r)/2;
-  return query(idx*2,l,mid,u,v) + query(idx*2+1,mid+1,r,u,v);
-}
+
 int main() {
   fasteio();
-  ll n,s,q;
-  cin >> n >> s >> q;
-  for(int i=)
+  ll n, m, q;
+  cin >> n >> m >> q;
+
+  vector<ll> row(n + 1, 0);
+  vector<ll> col(m + 1, 0);
+
+  while(q--){
+    ll type;
+    cin >> type;
+    if(type == 1){
+      ll r, x;
+      cin >> r >> x;
+      row[r] += x;
+    }
+    else if(type == 2){
+      ll c, x;
+      cin >> c >> x;
+      col[c] += x;
+    }
+    else{
+      ll x1, y1, x2, y2;
+      cin >> x1 >> y1 >> x2 >> y2;
+      ll maxr = LLONG_MIN;
+      for(ll i = x1; i <= x2; i++){
+        maxr = max(maxr, row[i]);
+      }
+      ll maxc = LLONG_MIN;
+      for(ll j = y1; j <= y2; j++){
+        maxc = max(maxc, col[j]);
+      }
+
+      cout << maxr + maxc << endl;
+    }
+  }
   return 0;
 }
