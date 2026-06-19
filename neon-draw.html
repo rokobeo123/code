@@ -26,7 +26,7 @@
     .stage{position:fixed;inset:56px 0 48px 0;display:flex;align-items:center;justify-content:center}
     video#camera{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000;transform:scaleX(-1);transform-origin:center center}
     .canvas-wrap{position:relative;width:100%;height:100%}
-    canvas#draw{position:absolute;inset:0;width:100%;height:100%;background:transparent;transform:scaleX(-1);transform-origin:center center}
+    #draw{position:absolute;inset:0;width:100%;height:100%;background:transparent;transform:scaleX(-1);transform-origin:center center}
 
     /* Bottom status */
     .statusbar{position:fixed;left:0;right:0;bottom:0;height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;background:linear-gradient(90deg,transparent,rgba(0,0,0,0.25));z-index:30}
@@ -58,7 +58,7 @@
 
     <!-- Transparent drawing canvas container -->
     <div class="canvas-wrap">
-      <canvas id="draw" width="1280" height="720"></canvas>
+      <div id="draw"></div>
     </div>
   </main>
 
@@ -97,13 +97,11 @@
         l.setAttribute('aria-hidden', 'false');
       }
 
-      // Basic resize handling to keep canvas sized to container
+      // Basic resize handling to keep the p5 canvas sized to the stage
       function fitCanvas(){
-        const c = document.getElementById('draw');
-        if(!c) return;
-        const rect = c.getBoundingClientRect();
-        c.width = Math.max(300, Math.floor(rect.width));
-        c.height = Math.max(200, Math.floor(rect.height));
+        const rect = document.getElementById('stage');
+        if(!rect || !window._neonP5) return;
+        window._neonP5.resizeCanvas(Math.max(300, Math.floor(rect.clientWidth)), Math.max(200, Math.floor(rect.clientHeight)));
       }
       const stage = document.getElementById('stage');
       if(stage){
@@ -116,12 +114,17 @@
         // Create a p5 instance in instance mode
         const sketch = (p) => {
           p.setup = function(){
-            p.createCanvas(p.windowWidth, p.windowHeight);
+            const stageEl = document.getElementById('stage');
+            const w = Math.max(300, Math.floor(stageEl ? stageEl.clientWidth : p.windowWidth));
+            const h = Math.max(200, Math.floor(stageEl ? stageEl.clientHeight : p.windowHeight));
+            p.createCanvas(w, h).parent('draw');
             p.pixelDensity(1);
             bgLayer = p.createGraphics(p.width, p.height);
             bgLayer.pixelDensity(1);
             // reference existing video element
-            video = p.select('#camera');
+            video = document.getElementById('camera');
+            window._neonP5 = p;
+            fitCanvas();
           };
 
           p.draw = function(){
@@ -132,8 +135,12 @@
           };
 
           p.windowResized = function(){
-            p.resizeCanvas(p.windowWidth, p.windowHeight);
-            if(bgLayer && bgLayer.resizeCanvas) bgLayer.resizeCanvas(p.width, p.height);
+            const stageEl = document.getElementById('stage');
+            const w = Math.max(300, Math.floor(stageEl ? stageEl.clientWidth : p.windowWidth));
+            const h = Math.max(200, Math.floor(stageEl ? stageEl.clientHeight : p.windowHeight));
+            p.resizeCanvas(w, h);
+            if(bgLayer && bgLayer.resizeCanvas) bgLayer.resizeCanvas(w, h);
+            fitCanvas();
           };
         };
         new p5(sketch);
@@ -157,14 +164,16 @@
         try{
           const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720, facingMode: 'user' }, audio: false });
           const cam = document.getElementById('camera');
+          if(!cam) throw new Error('Missing #camera element');
+          video = cam;
           cam.srcObject = stream;
           await cam.play();
 
           // Begin processing frames and sending to MediaPipe
           function processFrame(){
             requestAnimationFrame(processFrame);
-            if(video && hands && video.elt){
-              try{ hands.send({ image: video.elt }); }catch(e){ /* ignore transient send errors */ }
+            if(video && hands){
+              try{ hands.send({ image: video }); }catch(e){ /* ignore transient send errors */ }
             }
           }
           processFrame();
