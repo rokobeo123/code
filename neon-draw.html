@@ -25,7 +25,7 @@
     /* Fullscreen camera/video + transparent canvas container */
     .stage{position:fixed;inset:56px 0 48px 0;display:flex;align-items:center;justify-content:center}
     video#camera{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000;transform:scaleX(-1);transform-origin:center center}
-    .canvas-wrap{position:relative;width:100%;height:100%;pointer-events:none}
+    .canvas-wrap{position:relative;width:100%;height:100%}
     canvas#draw{position:absolute;inset:0;width:100%;height:100%;background:transparent;transform:scaleX(-1);transform-origin:center center}
 
     /* Bottom status */
@@ -82,11 +82,14 @@
     // Minimal inline script to ensure layout boxes render without errors.
     (function(){
       // Hide loading after a short delay so the shell visibly renders in tests
-      window.addEventListener('load', function(){
-        setTimeout(()=>{
-          const l = document.getElementById('loading'); if(l) l.style.display='none';
-        }, 300);
-      });
+      window.neon = { ready: false };
+
+      function hideLoading(){
+        const l = document.getElementById('loading');
+        if(!l) return;
+        l.style.display = 'none';
+        l.setAttribute('aria-hidden', 'true');
+      }
 
       // Basic resize handling to keep canvas sized to container
       function fitCanvas(){
@@ -96,11 +99,16 @@
         c.width = Math.max(300, Math.floor(rect.width));
         c.height = Math.max(200, Math.floor(rect.height));
       }
-      new ResizeObserver(fitCanvas).observe(document.getElementById('stage'));
+      const stage = document.getElementById('stage');
+      if(stage){
+        new ResizeObserver(fitCanvas).observe(stage);
+      }
       fitCanvas();
 
-      // Expose a tiny API for later tasks
-      window.neon = { ready: true };
+      window.addEventListener('DOMContentLoaded', function(){
+        window.neon.ready = true;
+        hideLoading();
+      });
     })();
   </script>
 </body>
