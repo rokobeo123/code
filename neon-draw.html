@@ -354,7 +354,7 @@
                 for(let pi=0; pi<pts.length; pi+=step){ const pt = pts[pi]; shards.push(new Shard(pt.x, pt.y, s.color)); if(Math.random()<0.6) sparks.push(new Spark(pt.x, pt.y, s.color)); }
               }
               // clear strokes and persistent layer
-              strokes.length = 0; redrawBgLayer(); if(bgLayer) bgLayer.clear();
+              strokes.length = 0; redrawBgLayer();
             }
 
             // Drawing: index-up AND middle-down required
