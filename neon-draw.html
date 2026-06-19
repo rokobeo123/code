@@ -79,113 +79,203 @@
   </div>
 
   <script>
-    // p5 + camera bootstrap for Task 2
+    // p5 + camera bootstrap for Task 3: gestures, drawing, swatches
     let video, hands, bgLayer;
+
+    // Step 1 helpers
+    const SWATCHES = ['#00f5ff','#ff00ff','#ff6600','#00ff88','#ffff00','#ff1177','#aa44ff','#ff4400','#ffffff'];
+    function toC(pt){ return { x: pt.x * (window._neonP5 ? window._neonP5.width : 640), y: pt.y * (window._neonP5 ? window._neonP5.height : 480) }; }
+
     (function(){
       window.neon = { ready: false };
 
-      function hideLoading(){
-        const l = document.getElementById('loading');
-        if(!l) return;
-        l.style.display = 'none';
-        l.setAttribute('aria-hidden', 'true');
-      }
-      function showLoading(){
-        const l = document.getElementById('loading');
-        if(!l) return;
-        l.style.display = 'flex';
-        l.setAttribute('aria-hidden', 'false');
-      }
+      function hideLoading(){ const l = document.getElementById('loading'); if(!l) return; l.style.display = 'none'; l.setAttribute('aria-hidden','true'); }
+      function showLoading(){ const l = document.getElementById('loading'); if(!l) return; l.style.display = 'flex'; l.setAttribute('aria-hidden','false'); }
 
-      // Basic resize handling to keep the p5 canvas sized to the stage
-      function fitCanvas(){
-        const rect = document.getElementById('stage');
-        if(!rect || !window._neonP5) return;
-        window._neonP5.resizeCanvas(Math.max(300, Math.floor(rect.clientWidth)), Math.max(200, Math.floor(rect.clientHeight)));
-      }
-      const stage = document.getElementById('stage');
-      if(stage){
-        new ResizeObserver(fitCanvas).observe(stage);
-      }
+      // State: strokes and hands
+      const strokes = []; // {id,color,size,points:[{x,y}], hand}
+      const activeStrokes = {}; // handId -> stroke
+      let activeColor = SWATCHES[0];
+      const SWATCH_DWELL = 480; // ms
+
+      // Per-hand state store
+      const handsState = {}; // key by label 'Left'/'Right'
+
+      function fitCanvas(){ const rect = document.getElementById('stage'); if(!rect || !window._neonP5) return; window._neonP5.resizeCanvas(Math.max(300, Math.floor(rect.clientWidth)), Math.max(200, Math.floor(rect.clientHeight))); }
+      const stage = document.getElementById('stage'); if(stage){ new ResizeObserver(fitCanvas).observe(stage); }
       fitCanvas();
 
-      // Wait for full load so deferred scripts (p5, MediaPipe) are available
+      // Drawing helpers
+      function drawStrokeLayer(g, s){
+        if(!s || !s.points || s.points.length<2) return;
+        // neon glow: draw wide soft strokes under a core bright stroke
+        g.push();
+        g.noFill();
+        for(let i=0;i<s.points.length-1;i++){
+          const a = s.points[i]; const b = s.points[i+1];
+          // large blurred layers
+          g.strokeWeight(s.size*3);
+          g.stroke(colorWithAlpha(s.color, 0.06));
+          g.line(a.x,a.y,b.x,b.y);
+          g.strokeWeight(s.size*2);
+          g.stroke(colorWithAlpha(s.color, 0.12));
+          g.line(a.x,a.y,b.x,b.y);
+        }
+        // core
+        g.strokeWeight(s.size);
+        g.stroke(colorWithAlpha(s.color, 1));
+        g.line(s.points[0].x,s.points[0].y,s.points[0].x,s.points[0].y); // dot if single
+        for(let i=0;i<s.points.length-1;i++){
+          const a = s.points[i]; const b = s.points[i+1];
+          g.line(a.x,a.y,b.x,b.y);
+        }
+        g.pop();
+      }
+      function colorWithAlpha(hex, a){
+        // hex like #rrggbb
+        const r = parseInt(hex.slice(1,3),16); const g = parseInt(hex.slice(3,5),16); const b = parseInt(hex.slice(5,7),16);
+        return `rgba(${r},${g},${b},${a})`;
+      }
+
+      function redrawBgLayer(){ if(!bgLayer) return; bgLayer.clear(); // draw all strokes
+        for(const s of strokes){ drawStrokeLayer(bgLayer,s); }
+      }
+
+      // Gesture helpers
+      function isFingerUp(landmarks, tipIdx, pipIdx){ if(!landmarks) return false; return landmarks[tipIdx].y < landmarks[pipIdx].y; }
+      function distancePx(a,b){ const A = toC(a); const B = toC(b); const dx = A.x-B.x, dy = A.y-B.y; return Math.sqrt(dx*dx+dy*dy); }
+
+      // Start p5
       window.addEventListener('load', async function(){
-        // Create a p5 instance in instance mode
         const sketch = (p) => {
           p.setup = function(){
             const stageEl = document.getElementById('stage');
             const w = Math.max(300, Math.floor(stageEl ? stageEl.clientWidth : p.windowWidth));
             const h = Math.max(200, Math.floor(stageEl ? stageEl.clientHeight : p.windowHeight));
-            p.createCanvas(w, h).parent('draw');
-            p.pixelDensity(1);
-            bgLayer = p.createGraphics(p.width, p.height);
-            bgLayer.pixelDensity(1);
-            // reference existing video element
-            video = document.getElementById('camera');
-            window._neonP5 = p;
-            fitCanvas();
+            p.createCanvas(w,h).parent('draw'); p.pixelDensity(1);
+            bgLayer = p.createGraphics(p.width,p.height); bgLayer.pixelDensity(1);
+            video = document.getElementById('camera'); window._neonP5 = p; fitCanvas();
           };
 
           p.draw = function(){
-            p.clear(); // keep main canvas transparent
-            if(bgLayer){
-              p.image(bgLayer, 0, 0, p.width, p.height);
+            p.clear();
+            // show persistent strokes
+            if(bgLayer) p.image(bgLayer,0,0,p.width,p.height);
+
+            // draw swatches rail on left
+            const sw = 44, gap = 12, left = 12, top = 80;
+            for(let i=0;i<SWATCHES.length;i++){
+              const x = left; const y = top + i*(sw+gap);
+              // base
+              p.push();
+              p.noStroke(); p.fill(SWATCHES[i]); p.rect(x,y,sw,sw,8);
+              // active border
+              if(SWATCHES[i]===activeColor){ p.stroke(255,255,255,220); p.strokeWeight(3); p.noFill(); p.rect(x-4,y-4,sw+8,sw+8,10); }
+              p.pop();
+            }
+
+            // draw hover/dwell progress and finger cursors
+            for(const key in handsState){ const hs = handsState[key]; if(!hs || !hs.indexTip) continue;
+              const tip = hs.indexTip; p.push();
+              // finger cursor
+              p.noStroke(); p.fill(255,255,255,180); p.ellipse(tip.x,tip.y,8);
+              // if hovering swatch, draw progress arc
+              if(typeof hs.hoverSwatch === 'number'){
+                const idx = hs.hoverSwatch; const x = left+sw/2; const y = top + idx*(sw+gap)+sw/2; const prog = Math.min(1, (Date.now()-hs.dwellStart)/SWATCH_DWELL);
+                // glow ring
+                p.noFill(); p.stroke(colorWithAlpha(SWATCHES[idx],0.9)); p.strokeWeight(6); p.ellipse(x,y,sw+18);
+                // progress arc
+                p.noFill(); p.stroke(255,255,255,220); p.strokeWeight(3);
+                p.arc(x,y,sw+14,sw+14,-HALF_PI, -HALF_PI + TWO_PI*prog);
+              }
+              p.pop();
             }
           };
 
-          p.windowResized = function(){
-            const stageEl = document.getElementById('stage');
-            const w = Math.max(300, Math.floor(stageEl ? stageEl.clientWidth : p.windowWidth));
-            const h = Math.max(200, Math.floor(stageEl ? stageEl.clientHeight : p.windowHeight));
-            p.resizeCanvas(w, h);
-            if(bgLayer && bgLayer.resizeCanvas) bgLayer.resizeCanvas(w, h);
-            fitCanvas();
-          };
+          p.windowResized = function(){ const stageEl = document.getElementById('stage'); const w = Math.max(300, Math.floor(stageEl ? stageEl.clientWidth : p.windowWidth)); const h = Math.max(200, Math.floor(stageEl ? stageEl.clientHeight : p.windowHeight)); p.resizeCanvas(w,h); if(bgLayer && bgLayer.resizeCanvas) bgLayer.resizeCanvas(w,h); fitCanvas(); };
         };
         new p5(sketch);
 
         // Initialize MediaPipe Hands
         hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
-        hands.setOptions({
-          maxNumHands: 2,
-          minDetectionConfidence: 0.75,
-          minTrackingConfidence: 0.7
-        });
+        hands.setOptions({ maxNumHands: 2, minDetectionConfidence: 0.75, minTrackingConfidence: 0.7 });
+
         hands.onResults(function(results){
-          // placeholder: draw landmarks to bgLayer in future tasks
-          const count = (results.multiHandLandmarks || []).length;
+          const p = window._neonP5;
           const statusLeft = document.getElementById('status-left');
-          if(statusLeft) statusLeft.textContent = 'Status: hands:' + count;
-        });
+          const landmarksList = results.multiHandLandmarks || [];
+          const handednessList = results.multiHandedness || [];
+          if(statusLeft) statusLeft.textContent = 'Status: hands:' + landmarksList.length;
 
-        // Start camera using getUserMedia and attach to <video id="camera">
-        showLoading();
-        try{
-          const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720, facingMode: 'user' }, audio: false });
-          const cam = document.getElementById('camera');
-          if(!cam) throw new Error('Missing #camera element');
-          video = cam;
-          cam.srcObject = stream;
-          await cam.play();
+          // reset handsState presence; we'll update for present hands
+          const present = {};
 
-          // Begin processing frames and sending to MediaPipe
-          function processFrame(){
-            requestAnimationFrame(processFrame);
-            if(video && hands){
-              try{ hands.send({ image: video }); }catch(e){ /* ignore transient send errors */ }
+          for(let i=0;i<landmarksList.length;i++){
+            const lm = landmarksList[i]; const handLabel = (handednessList[i] && handednessList[i].label) ? handednessList[i].label : `H${i}`;
+            present[handLabel]=true;
+            const indexUp = isFingerUp(lm,8,6);
+            const middleDown = !isFingerUp(lm,12,10);
+            const open5 = isFingerUp(lm,8,6) && isFingerUp(lm,12,10) && isFingerUp(lm,16,14) && isFingerUp(lm,20,18);
+            const fist = !open5 && (lm[8].y>lm[6].y && lm[12].y>lm[10].y);
+            const pinchDist = distancePx(lm[4],lm[8]);
+            const tipC = toC(lm[8]);
+
+            // ensure state exists
+            if(!handsState[handLabel]) handsState[handLabel] = { hoverSwatch: null, dwellStart: 0 };
+            const hs = handsState[handLabel];
+            hs.landmarks = lm; hs.indexUp = indexUp; hs.middleDown = middleDown; hs.open5 = open5; hs.fist = fist; hs.pinchDist = pinchDist; hs.indexTip = { x: tipC.x, y: tipC.y };
+
+            // Swatch hover detection
+            const sw = 44, gap = 12, left = 12, top = 80;
+            let hoverIdx = null;
+            for(let si=0;si<SWATCHES.length;si++){
+              const x = left; const y = top + si*(sw+gap);
+              if(hs.indexTip.x >= x && hs.indexTip.x <= x+sw && hs.indexTip.y >= y && hs.indexTip.y <= y+sw){ hoverIdx = si; break; }
+            }
+            if(hoverIdx!==null){
+              if(hs.hoverSwatch!==hoverIdx){ hs.hoverSwatch = hoverIdx; hs.dwellStart = Date.now(); }
+              else{
+                const elapsed = Date.now()-hs.dwellStart;
+                if(elapsed>=SWATCH_DWELL){ activeColor = SWATCHES[hoverIdx]; hs.hoverSwatch = null; hs.dwellStart = 0; // reset
+                }
+              }
+            } else { hs.hoverSwatch = null; hs.dwellStart = 0; }
+
+            // Drawing: index-up AND middle-down required
+            const drawing = indexUp && middleDown;
+            const handKey = handLabel;
+            if(drawing){
+              // start stroke if not active
+              if(!activeStrokes[handKey]){
+                const newStroke = { id: Date.now() + '-' + handKey, color: activeColor, size: 16, points: [], hand: handKey };
+                strokes.push(newStroke); activeStrokes[handKey] = newStroke;
+              }
+              // append point
+              const s = activeStrokes[handKey]; const pnt = { x: hs.indexTip.x, y: hs.indexTip.y };
+              const pts = s.points; if(pts.length===0 || Math.hypot(pts[pts.length-1].x-pnt.x, pts[pts.length-1].y-pnt.y)>1){ pts.push(pnt); // draw latest segment to bgLayer for persistence
+                if(bgLayer){ drawStrokeLayer(bgLayer, { color: s.color, size: s.size, points: pts.slice(Math.max(0,pts.length-2)) }); }
+              }
+            } else {
+              // finish stroke if exists
+              if(activeStrokes[handKey]){ // finalize by redrawing whole bg to ensure glow consistency
+                activeStrokes[handKey] = null; delete activeStrokes[handKey]; redrawBgLayer();
+              }
             }
           }
-          processFrame();
 
-          hideLoading();
-          window.neon.ready = true;
-        }catch(err){
-          console.error('Camera startup failed', err);
-          const statusLeft = document.getElementById('status-left');
-          if(statusLeft) statusLeft.textContent = 'Status: camera-error';
-          hideLoading();
-        }
+          // Clear handsState entries for hands no longer present
+          for(const k in handsState){ if(!present[k]) delete handsState[k]; }
+        });
+
+        // Start camera
+        showLoading();
+        try{
+          const stream = await navigator.mediaDevices.getUserMedia({ video: { width:1280, height:720, facingMode:'user' }, audio:false });
+          const cam = document.getElementById('camera'); if(!cam) throw new Error('Missing #camera element'); video = cam; cam.srcObject = stream; await cam.play();
+
+          function processFrame(){ requestAnimationFrame(processFrame); if(video && hands){ try{ hands.send({ image: video }); }catch(e){} } }
+          processFrame(); hideLoading(); window.neon.ready = true;
+        }catch(err){ console.error('Camera startup failed', err); const statusLeft = document.getElementById('status-left'); if(statusLeft) statusLeft.textContent = 'Status: camera-error'; hideLoading(); }
       });
     })();
   </script>
