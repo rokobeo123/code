@@ -6,10 +6,12 @@
   <title>Neon Draw</title>
 
   <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
 
-  <!-- Minimal stable CDN (utility) -->
-  <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js" defer></script>
+  <!-- Required CDNs: p5.js and MediaPipe Hands -->
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" defer></script>
 
   <style>
     :root{--accent:#7c3aed;--bg:#05060a;color-scheme:dark}
@@ -22,9 +24,9 @@
 
     /* Fullscreen camera/video + transparent canvas container */
     .stage{position:fixed;inset:56px 0 48px 0;display:flex;align-items:center;justify-content:center}
-    video#camera{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
+    video#camera{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000;transform:scaleX(-1);transform-origin:center center}
     .canvas-wrap{position:relative;width:100%;height:100%;pointer-events:none}
-    canvas#draw{position:absolute;inset:0;width:100%;height:100%;background:transparent}
+    canvas#draw{position:absolute;inset:0;width:100%;height:100%;background:transparent;transform:scaleX(-1);transform-origin:center center}
 
     /* Bottom status */
     .statusbar{position:fixed;left:0;right:0;bottom:0;height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;background:linear-gradient(90deg,transparent,rgba(0,0,0,0.25));z-index:30}
