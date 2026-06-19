@@ -79,9 +79,9 @@
   </div>
 
   <script>
-    // Minimal inline script to ensure layout boxes render without errors.
+    // p5 + camera bootstrap for Task 2
+    let video, hands, bgLayer;
     (function(){
-      // Hide loading after a short delay so the shell visibly renders in tests
       window.neon = { ready: false };
 
       function hideLoading(){
@@ -89,6 +89,12 @@
         if(!l) return;
         l.style.display = 'none';
         l.setAttribute('aria-hidden', 'true');
+      }
+      function showLoading(){
+        const l = document.getElementById('loading');
+        if(!l) return;
+        l.style.display = 'flex';
+        l.setAttribute('aria-hidden', 'false');
       }
 
       // Basic resize handling to keep canvas sized to container
@@ -105,9 +111,72 @@
       }
       fitCanvas();
 
-      window.addEventListener('DOMContentLoaded', function(){
-        window.neon.ready = true;
-        hideLoading();
+      // Wait for full load so deferred scripts (p5, MediaPipe) are available
+      window.addEventListener('load', async function(){
+        // Create a p5 instance in instance mode
+        const sketch = (p) => {
+          p.setup = function(){
+            p.createCanvas(p.windowWidth, p.windowHeight);
+            p.pixelDensity(1);
+            bgLayer = p.createGraphics(p.width, p.height);
+            bgLayer.pixelDensity(1);
+            // reference existing video element
+            video = p.select('#camera');
+          };
+
+          p.draw = function(){
+            p.clear(); // keep main canvas transparent
+            if(bgLayer){
+              p.image(bgLayer, 0, 0, p.width, p.height);
+            }
+          };
+
+          p.windowResized = function(){
+            p.resizeCanvas(p.windowWidth, p.windowHeight);
+            if(bgLayer && bgLayer.resizeCanvas) bgLayer.resizeCanvas(p.width, p.height);
+          };
+        };
+        new p5(sketch);
+
+        // Initialize MediaPipe Hands
+        hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
+        hands.setOptions({
+          maxNumHands: 2,
+          minDetectionConfidence: 0.75,
+          minTrackingConfidence: 0.7
+        });
+        hands.onResults(function(results){
+          // placeholder: draw landmarks to bgLayer in future tasks
+          const count = (results.multiHandLandmarks || []).length;
+          const statusLeft = document.getElementById('status-left');
+          if(statusLeft) statusLeft.textContent = 'Status: hands:' + count;
+        });
+
+        // Start camera using getUserMedia and attach to <video id="camera">
+        showLoading();
+        try{
+          const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720, facingMode: 'user' }, audio: false });
+          const cam = document.getElementById('camera');
+          cam.srcObject = stream;
+          await cam.play();
+
+          // Begin processing frames and sending to MediaPipe
+          function processFrame(){
+            requestAnimationFrame(processFrame);
+            if(video && hands && video.elt){
+              try{ hands.send({ image: video.elt }); }catch(e){ /* ignore transient send errors */ }
+            }
+          }
+          processFrame();
+
+          hideLoading();
+          window.neon.ready = true;
+        }catch(err){
+          console.error('Camera startup failed', err);
+          const statusLeft = document.getElementById('status-left');
+          if(statusLeft) statusLeft.textContent = 'Status: camera-error';
+          hideLoading();
+        }
       });
     })();
   </script>
