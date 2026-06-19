@@ -47,6 +47,8 @@
     .topbar button{background:transparent;border:1px solid rgba(255,255,255,0.08);color:inherit;padding:8px 10px;border-radius:6px;font-weight:600;cursor:pointer}
     .topbar button:hover{border-color:var(--accent);box-shadow:0 4px 14px rgba(124,58,237,0.12)}
 
+    #error-overlay{z-index:60}
+
     /* Small responsive tweaks */
     @media (max-width:520px){.help{display:none}.topbar{padding:0 10px}}
   </style>
@@ -367,8 +369,8 @@
             }
 
             // Fist -> open5 shatter: detect transition
+            if(fist) anyFist = true;
             if(hs.prevFist && hs.open5){
-              anyFist = true;
               // sample ~40 points from each stroke and spawn shards/sparks
               for(const s of strokes){
                 const pts = s.points || [];
