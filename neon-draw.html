@@ -37,10 +37,15 @@
     .loader:after{content:"";width:28px;height:28px;border-radius:50%;border:3px solid rgba(255,255,255,0.12);border-top-color:var(--accent);animation:spin 1s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
 
-    /* Help tips */
-    .help{position:fixed;right:14px;top:72px;width:260px;background:rgba(10,12,20,0.6);padding:10px;border-radius:8px;font-size:13px;backdrop-filter:blur(6px);z-index:35}
+    /* Help tips (moved to bottom-right for Task 5) */
+    .help{position:fixed;right:14px;bottom:14px;width:260px;background:rgba(10,12,20,0.6);padding:10px;border-radius:8px;font-size:13px;backdrop-filter:blur(6px);z-index:45}
     .help h4{margin:0 0 6px 0;font-size:13px;color:var(--accent)}
     .muted{opacity:0.9;color:#bcd3ff;font-size:13px}
+
+    /* Topbar controls */
+    .topbar .ctrls{margin-left:auto;display:flex;gap:8px}
+    .topbar button{background:transparent;border:1px solid rgba(255,255,255,0.08);color:inherit;padding:8px 10px;border-radius:6px;font-weight:600;cursor:pointer}
+    .topbar button:hover{border-color:var(--accent);box-shadow:0 4px 14px rgba(124,58,237,0.12)}
 
     /* Small responsive tweaks */
     @media (max-width:520px){.help{display:none}.topbar{padding:0 10px}}
@@ -48,8 +53,12 @@
 </head>
 <body>
   <div class="topbar" role="banner">
-    <div class="brand">Neon Draw</div>
+    <div class="brand" id="brand">Neon Draw</div>
     <div class="muted">single-file shell • camera & canvas</div>
+    <div class="ctrls" role="toolbar" aria-label="Controls">
+      <button id="undo" title="Undo last stroke">UNDO</button>
+      <button id="clear" title="Clear all (XÓA)">XÓA</button>
+    </div>
   </div>
 
   <main class="stage" id="stage">
@@ -76,6 +85,10 @@
 
   <div class="loading" id="loading" aria-hidden="false">
     <div class="loader" aria-hidden="true"></div>
+  </div>
+
+  <div class="loading" id="error-overlay" style="display:none;align-items:center;flex-direction:column;" aria-hidden="true">
+    <div style="color:#fff;margin-bottom:12px;text-align:center;max-width:420px;padding:10px;">Initialization failed. Camera or Hands loading unavailable.<br>Please allow camera access and check network. <button id="retry" style="margin-top:8px;padding:6px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);background:transparent;color:inherit;">Retry</button></div>
   </div>
 
   <script>
@@ -106,6 +119,10 @@
 
       function hideLoading(){ const l = document.getElementById('loading'); if(!l) return; l.style.display = 'none'; l.setAttribute('aria-hidden','true'); }
       function showLoading(){ const l = document.getElementById('loading'); if(!l) return; l.style.display = 'flex'; l.setAttribute('aria-hidden','false'); }
+      function showError(msg){ const e = document.getElementById('error-overlay'); if(!e) return; e.style.display = 'flex'; e.setAttribute('aria-hidden','false'); const txt = e.querySelector('div'); if(txt) txt.innerHTML = msg + '<br><button id="retry" style="margin-top:8px;padding:6px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);background:transparent;color:inherit;">Retry</button>';
+        const btn = document.getElementById('retry'); if(btn){ btn.onclick = () => { e.style.display='none'; e.setAttribute('aria-hidden','true'); location.reload(); }; }
+      }
+      function hideError(){ const e = document.getElementById('error-overlay'); if(!e) return; e.style.display = 'none'; e.setAttribute('aria-hidden','true'); }
 
       // State: strokes and hands
       const strokes = []; // {id,color,size,points:[{x,y}], hand}
@@ -275,21 +292,25 @@
         hands.onResults(function(results){
           const p = window._neonP5;
           const statusLeft = document.getElementById('status-left');
+          const statusRight = document.getElementById('status-right');
           const landmarksList = results.multiHandLandmarks || [];
           const handednessList = results.multiHandedness || [];
-          if(statusLeft) statusLeft.textContent = 'Status: hands:' + landmarksList.length;
+
+          // aggregate state flags
+          let anyDrawing = false, anyPinch = false, anyFist = false, anyHands = false;
 
           // reset handsState presence; we'll update for present hands
           const present = {};
 
           for(let i=0;i<landmarksList.length;i++){
+            anyHands = true;
             const lm = landmarksList[i]; const handLabel = (handednessList[i] && handednessList[i].label) ? handednessList[i].label : `H${i}`;
             present[handLabel]=true;
             const indexUp = isFingerUp(lm,8,6);
             const middleDown = !isFingerUp(lm,12,10);
             const open5 = isFingerUp(lm,8,6) && isFingerUp(lm,12,10) && isFingerUp(lm,16,14) && isFingerUp(lm,20,18);
             const fist = !open5 && (lm[8].y>lm[6].y && lm[12].y>lm[10].y);
-            const pinchDist = distancePx(lm[4],lm[8]);
+            const pinchDist = distancePx(lm[4], lm[8]);
             const tipC = toC(lm[8]);
 
             // ensure state exists
@@ -326,6 +347,7 @@
 
             // Pinch-based move: thumb & index proximity
             const pinchActive = pinchDist < PINCH_THRESHOLD;
+            if(pinchActive) anyPinch = true;
             if(pinchActive && !hs.pinchActive){
               // start pinch: find nearest stroke point
               let nearest = null; let nd = Infinity;
@@ -346,6 +368,7 @@
 
             // Fist -> open5 shatter: detect transition
             if(hs.prevFist && hs.open5){
+              anyFist = true;
               // sample ~40 points from each stroke and spawn shards/sparks
               for(const s of strokes){
                 const pts = s.points || [];
@@ -359,6 +382,7 @@
 
             // Drawing: index-up AND middle-down required
             const drawing = indexUp && middleDown;
+            if(drawing) anyDrawing = true;
             const handKey = handLabel;
             if(drawing){
               // start stroke if not active
@@ -385,7 +409,22 @@
               delete handsState[k];
             }
           }
+
+          // Update HUD status based on aggregated flags
+          let stateLabel = 'idle';
+          if(anyDrawing) stateLabel = 'drawing';
+          else if(anyPinch) stateLabel = 'pinch';
+          else if(anyFist) stateLabel = 'fist';
+          else if(anyHands) stateLabel = 'tracking';
+          if(statusLeft) statusLeft.textContent = 'Status: ' + stateLabel + (anyHands ? ' (' + landmarksList.length + ' hands)' : '');
+          if(statusRight) statusRight.textContent = 'Strokes: ' + strokes.length + ' • Color: ' + activeColor;
         });
+
+        // Wire HUD controls
+        const undoBtn = document.getElementById('undo'); if(undoBtn){ undoBtn.addEventListener('click', ()=>{ if(strokes.length>0){ strokes.pop(); redrawBgLayer(); } }); }
+        const clearBtn = document.getElementById('clear'); if(clearBtn){ clearBtn.addEventListener('click', ()=>{ strokes.length=0; redrawBgLayer(); shards.length=0; sparks.length=0; }); }
+        const brandBtn = document.getElementById('brand'); if(brandBtn){ brandBtn.style.cursor = 'pointer'; brandBtn.addEventListener('click', ()=>{ activeColor = SWATCHES[0]; // small feedback: spawn sparks
+            for(let i=0;i<6;i++) sparks.push(new Spark(60,90,activeColor)); }); }
 
         // Start camera
         showLoading();
@@ -395,7 +434,12 @@
 
           function processFrame(){ requestAnimationFrame(processFrame); if(video && hands){ try{ hands.send({ image: video }); }catch(e){} } }
           processFrame(); hideLoading(); window.neon.ready = true;
-        }catch(err){ console.error('Camera startup failed', err); const statusLeft = document.getElementById('status-left'); if(statusLeft) statusLeft.textContent = 'Status: camera-error'; hideLoading(); }
+          // clear any previous error
+          hideError();
+        }catch(err){ console.error('Camera startup failed', err); const statusLeft = document.getElementById('status-left'); if(statusLeft) statusLeft.textContent = 'Status: camera-error'; hideLoading(); showError('Camera access failed: ' + (err && err.message ? err.message : String(err))); }
+
+        // If initialization doesn't complete within a short window, show a helpful overlay so app never looks blank
+        setTimeout(()=>{ if(!window.neon.ready){ showError('Initialization timed out. Please allow camera access and check network (Hands).'); const statusLeft = document.getElementById('status-left'); if(statusLeft) statusLeft.textContent = 'Status: init-timeout'; } }, 7000);
       });
     })();
   </script>
