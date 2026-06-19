@@ -84,6 +84,8 @@
 
     // Step 1 helpers
     const SWATCHES = ['#00f5ff','#ff00ff','#ff6600','#00ff88','#ffff00','#ff1177','#aa44ff','#ff4400','#ffffff'];
+    // Centralized swatch layout constants (used for drawing and hit-testing)
+    const SWATCH_SIZE = 44, SWATCH_GAP = 12, SWATCH_LEFT = 12, SWATCH_TOP = 80;
     function toC(pt){ return { x: pt.x * (window._neonP5 ? window._neonP5.width : 640), y: pt.y * (window._neonP5 ? window._neonP5.height : 480) }; }
 
     (function(){
@@ -162,8 +164,8 @@
             // show persistent strokes
             if(bgLayer) p.image(bgLayer,0,0,p.width,p.height);
 
-            // draw swatches rail on left
-            const sw = 44, gap = 12, left = 12, top = 80;
+            // draw swatches rail on left (use centralized constants)
+            const sw = SWATCH_SIZE, gap = SWATCH_GAP, left = SWATCH_LEFT, top = SWATCH_TOP;
             for(let i=0;i<SWATCHES.length;i++){
               const x = left; const y = top + i*(sw+gap);
               // base
@@ -186,7 +188,8 @@
                 p.noFill(); p.stroke(colorWithAlpha(SWATCHES[idx],0.9)); p.strokeWeight(6); p.ellipse(x,y,sw+18);
                 // progress arc
                 p.noFill(); p.stroke(255,255,255,220); p.strokeWeight(3);
-                p.arc(x,y,sw+14,sw+14,-HALF_PI, -HALF_PI + TWO_PI*prog);
+                // use p5 instance constants to avoid relying on globals
+                p.arc(x,y,sw+14,sw+14,-p.HALF_PI, -p.HALF_PI + p.TWO_PI*prog);
               }
               p.pop();
             }
@@ -225,8 +228,8 @@
             const hs = handsState[handLabel];
             hs.landmarks = lm; hs.indexUp = indexUp; hs.middleDown = middleDown; hs.open5 = open5; hs.fist = fist; hs.pinchDist = pinchDist; hs.indexTip = { x: tipC.x, y: tipC.y };
 
-            // Swatch hover detection
-            const sw = 44, gap = 12, left = 12, top = 80;
+            // Swatch hover detection (use centralized constants)
+            const sw = SWATCH_SIZE, gap = SWATCH_GAP, left = SWATCH_LEFT, top = SWATCH_TOP;
             let hoverIdx = null;
             for(let si=0;si<SWATCHES.length;si++){
               const x = left; const y = top + si*(sw+gap);
@@ -253,7 +256,8 @@
               // append point
               const s = activeStrokes[handKey]; const pnt = { x: hs.indexTip.x, y: hs.indexTip.y };
               const pts = s.points; if(pts.length===0 || Math.hypot(pts[pts.length-1].x-pnt.x, pts[pts.length-1].y-pnt.y)>1){ pts.push(pnt); // draw latest segment to bgLayer for persistence
-                if(bgLayer){ drawStrokeLayer(bgLayer, { color: s.color, size: s.size, points: pts.slice(Math.max(0,pts.length-2)) }); }
+                if(bgLayer){ // draw a larger recent window to avoid flicker from tiny slices
+                  drawStrokeLayer(bgLayer, { color: s.color, size: s.size, points: pts.slice(Math.max(0,pts.length-8)) }); }
               }
             } else {
               // finish stroke if exists
