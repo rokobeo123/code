@@ -86,7 +86,19 @@
     const SWATCHES = ['#00f5ff','#ff00ff','#ff6600','#00ff88','#ffff00','#ff1177','#aa44ff','#ff4400','#ffffff'];
     // Centralized swatch layout constants (used for drawing and hit-testing)
     const SWATCH_SIZE = 44, SWATCH_GAP = 12, SWATCH_LEFT = 12, SWATCH_TOP = 80;
-    function toC(pt){ return { x: pt.x * (window._neonP5 ? window._neonP5.width : 640), y: pt.y * (window._neonP5 ? window._neonP5.height : 480) }; }
+    const SWATCH_DWELL = 480; // ms
+    // Stroke sizing and id counter (monotonic)
+    const DEFAULT_STROKE_SIZE = 16;
+    let STROKE_COUNTER = 1;
+    function toC(pt){
+      // Prefer actual video frame size (MediaPipe frames) to avoid early-frame scaling issues,
+      // then p5 instance size, then stage element size, then window size as a last resort.
+      const cam = document.getElementById('camera');
+      const stageEl = document.getElementById('stage');
+      const w = (cam && cam.videoWidth) ? cam.videoWidth : (window._neonP5 && window._neonP5.width) ? window._neonP5.width : (stageEl ? stageEl.clientWidth : window.innerWidth);
+      const h = (cam && cam.videoHeight) ? cam.videoHeight : (window._neonP5 && window._neonP5.height) ? window._neonP5.height : (stageEl ? stageEl.clientHeight : window.innerHeight);
+      return { x: pt.x * w, y: pt.y * h };
+    }
 
     (function(){
       window.neon = { ready: false };
@@ -98,7 +110,6 @@
       const strokes = []; // {id,color,size,points:[{x,y}], hand}
       const activeStrokes = {}; // handId -> stroke
       let activeColor = SWATCHES[0];
-      const SWATCH_DWELL = 480; // ms
 
       // Per-hand state store
       const handsState = {}; // key by label 'Left'/'Right'
@@ -245,7 +256,16 @@
               if(hs.hoverSwatch!==hoverIdx){ hs.hoverSwatch = hoverIdx; hs.dwellStart = Date.now(); }
               else{
                 const elapsed = Date.now()-hs.dwellStart;
-                if(elapsed>=SWATCH_DWELL){ activeColor = SWATCHES[hoverIdx]; hs.hoverSwatch = null; hs.dwellStart = 0; // reset
+                if(elapsed>=SWATCH_DWELL){
+                  // Explicit policy when multiple hands dwell: earliest completion wins; tie-break by hand label
+                  const completion = hs.dwellStart + SWATCH_DWELL;
+                  let earliestComp = completion; let earliestHand = handLabel;
+                  for(const otherKey in handsState){ const o = handsState[otherKey]; if(o && typeof o.hoverSwatch === 'number'){
+                    const oComp = o.dwellStart + SWATCH_DWELL;
+                    if(oComp < earliestComp || (oComp === earliestComp && otherKey < earliestHand)){ earliestComp = oComp; earliestHand = otherKey; }
+                  }}
+                  if(earliestHand === handLabel){ activeColor = SWATCHES[hoverIdx]; }
+                  hs.hoverSwatch = null; hs.dwellStart = 0;
                 }
               }
             } else { hs.hoverSwatch = null; hs.dwellStart = 0; }
@@ -256,7 +276,7 @@
             if(drawing){
               // start stroke if not active
               if(!activeStrokes[handKey]){
-                const newStroke = { id: Date.now() + '-' + handKey, color: activeColor, size: 16, points: [], hand: handKey };
+                const newStroke = { id: 's' + (STROKE_COUNTER++), color: activeColor, size: DEFAULT_STROKE_SIZE, points: [], hand: handKey };
                 strokes.push(newStroke); activeStrokes[handKey] = newStroke;
               }
               // append point
