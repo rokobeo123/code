@@ -143,6 +143,12 @@
         for(const s of strokes){ drawStrokeLayer(bgLayer,s); }
       }
 
+      function finishStroke(handKey){
+        if(!activeStrokes[handKey]) return;
+        delete activeStrokes[handKey];
+        redrawBgLayer();
+      }
+
       // Gesture helpers
       function isFingerUp(landmarks, tipIdx, pipIdx){ if(!landmarks) return false; return landmarks[tipIdx].y < landmarks[pipIdx].y; }
       function distancePx(a,b){ const A = toC(a); const B = toC(b); const dx = A.x-B.x, dy = A.y-B.y; return Math.sqrt(dx*dx+dy*dy); }
@@ -261,14 +267,17 @@
               }
             } else {
               // finish stroke if exists
-              if(activeStrokes[handKey]){ // finalize by redrawing whole bg to ensure glow consistency
-                activeStrokes[handKey] = null; delete activeStrokes[handKey]; redrawBgLayer();
-              }
+              finishStroke(handKey);
             }
           }
 
           // Clear handsState entries for hands no longer present
-          for(const k in handsState){ if(!present[k]) delete handsState[k]; }
+          for(const k in handsState){
+            if(!present[k]){
+              finishStroke(k);
+              delete handsState[k];
+            }
+          }
         });
 
         // Start camera
