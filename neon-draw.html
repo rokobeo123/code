@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Neon Draw</title>
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+  <!-- Minimal stable CDN (utility) -->
+  <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js" defer></script>
+
+  <style>
+    :root{--accent:#7c3aed;--bg:#05060a;color-scheme:dark}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial}
+    body{background:linear-gradient(180deg,#02040a 0%, #07102a 100%);color:#e6eef8;overflow:hidden}
+
+    /* Top bar */
+    .topbar{position:fixed;left:0;right:0;top:0;height:56px;display:flex;align-items:center;gap:12px;padding:0 14px;background:linear-gradient(90deg,rgba(255,255,255,0.03),transparent);backdrop-filter:blur(6px);z-index:30}
+    .brand{font-weight:700;color:var(--accent)}
+
+    /* Fullscreen camera/video + transparent canvas container */
+    .stage{position:fixed;inset:56px 0 48px 0;display:flex;align-items:center;justify-content:center}
+    video#camera{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
+    .canvas-wrap{position:relative;width:100%;height:100%;pointer-events:none}
+    canvas#draw{position:absolute;inset:0;width:100%;height:100%;background:transparent}
+
+    /* Bottom status */
+    .statusbar{position:fixed;left:0;right:0;bottom:0;height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;background:linear-gradient(90deg,transparent,rgba(0,0,0,0.25));z-index:30}
+
+    /* Loading overlay */
+    .loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,rgba(0,0,0,0.6),rgba(1,1,1,0.4));z-index:40}
+    .loader{width:64px;height:64px;border-radius:50%;box-shadow:0 0 32px var(--accent);display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 8px 24px rgba(0,0,0,0.6))}
+    .loader:after{content:"";width:28px;height:28px;border-radius:50%;border:3px solid rgba(255,255,255,0.12);border-top-color:var(--accent);animation:spin 1s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* Help tips */
+    .help{position:fixed;right:14px;top:72px;width:260px;background:rgba(10,12,20,0.6);padding:10px;border-radius:8px;font-size:13px;backdrop-filter:blur(6px);z-index:35}
+    .help h4{margin:0 0 6px 0;font-size:13px;color:var(--accent)}
+    .muted{opacity:0.9;color:#bcd3ff;font-size:13px}
+
+    /* Small responsive tweaks */
+    @media (max-width:520px){.help{display:none}.topbar{padding:0 10px}}
+  </style>
+</head>
+<body>
+  <div class="topbar" role="banner">
+    <div class="brand">Neon Draw</div>
+    <div class="muted">single-file shell • camera & canvas</div>
+  </div>
+
+  <main class="stage" id="stage">
+    <!-- Camera feed (will request permission when used) -->
+    <video id="camera" autoplay playsinline muted></video>
+
+    <!-- Transparent drawing canvas container -->
+    <div class="canvas-wrap">
+      <canvas id="draw" width="1280" height="720"></canvas>
+    </div>
+  </main>
+
+  <div class="statusbar" role="status">
+    <div class="muted" id="status-left">Status: idle</div>
+    <div class="muted" id="status-right">Help: press ?</div>
+  </div>
+
+  <aside class="help" aria-hidden="false">
+    <h4>Quick tips</h4>
+    <div class="muted">• Allow camera to see live video behind the canvas.</div>
+    <div class="muted">• Draw will be rendered on a transparent canvas overlay.</div>
+    <div class="muted">• This is a shell for later tasks; no drawing logic yet.</div>
+  </aside>
+
+  <div class="loading" id="loading" aria-hidden="false">
+    <div class="loader" aria-hidden="true"></div>
+  </div>
+
+  <script>
+    // Minimal inline script to ensure layout boxes render without errors.
+    (function(){
+      // Hide loading after a short delay so the shell visibly renders in tests
+      window.addEventListener('load', function(){
+        setTimeout(()=>{
+          const l = document.getElementById('loading'); if(l) l.style.display='none';
+        }, 300);
+      });
+
+      // Basic resize handling to keep canvas sized to container
+      function fitCanvas(){
+        const c = document.getElementById('draw');
+        if(!c) return;
+        const rect = c.getBoundingClientRect();
+        c.width = Math.max(300, Math.floor(rect.width));
+        c.height = Math.max(200, Math.floor(rect.height));
+      }
+      new ResizeObserver(fitCanvas).observe(document.getElementById('stage'));
+      fitCanvas();
+
+      // Expose a tiny API for later tasks
+      window.neon = { ready: true };
+    })();
+  </script>
+</body>
+</html>
