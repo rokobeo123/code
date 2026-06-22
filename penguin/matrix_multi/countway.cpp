@@ -23,14 +23,18 @@ void fre(const char *tenbai) {
 const ll INF = 1e9;
 const ll MOD = 1e9 +7;
 struct matrix {
-    ll a[3][3];
+    vector<vector<ll>> a;
+    matrix(int n) {
+        a.resize(n+1, vector<ll>(n+1));
+    }
 };
 matrix mul(matrix a, matrix b){
-    matrix c;
-    for(int i=1; i<=2; i++){
-        for(int j=1; j<=2; j++){
+    int n = a.a.size() - 1;
+    matrix c(n);
+    for(int i=1; i<=n; i++){
+        for(int j=1; j<=n; j++){
             c.a[i][j] = 0;
-            for(int k=1; k<=2; k++){
+            for(int k=1; k<=n; k++){
                 c.a[i][j] = (c.a[i][j] + a.a[i][k] * b.a[k][j]) % MOD;
             }
         }
@@ -38,6 +42,16 @@ matrix mul(matrix a, matrix b){
     return c;
 }
 matrix pow(matrix a, ll n){
+    int m = a.a.size() - 1;
+    if(n==0){
+        matrix c(m);
+        for(int i=1; i<=m; i++){
+            for(int j=1; j<=m; j++){
+                c.a[i][j] = (i==j);
+            }
+        }
+        return c;
+    }
     if(n == 1) return a;
     matrix c = pow(a, n/2);
     c = mul(c, c);
@@ -46,17 +60,14 @@ matrix pow(matrix a, ll n){
 }
 int main() {
   fasteio();
-    ll n;
-    cin >> n;
-    matrix a;
-    a.a[1][1] = 0; a.a[1][2] = 3;
-    a.a[2][1] = 1; a.a[2][2] = 2;
-    a = pow(a, n);
-    matrix b;
-    b.a[1][1] = 1; b.a[2][1] = 0;
-    b.a[1][2] = 0; b.a[2][2] = 0;
-    b = mul(a, b);
-    cout << b.a[1][1] << endl;
+    ll n,k;
+    cin >> n >> k;
+    matrix a(n);
+    for(int i=1; i<=n; i++){
+        for(int j=1; j<=n; j++){
+            cin >> a.a[i][j];
+        }
+    }
   //cerr << 1000 * clock() / CLOCKS_PER_SEC;
   return 0;
 }

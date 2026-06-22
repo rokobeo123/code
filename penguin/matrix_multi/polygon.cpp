@@ -48,15 +48,15 @@ int main() {
   fasteio();
     ll n;
     cin >> n;
+    if(n==0 || n==1) {
+        cout << n;
+        return 0;
+    }
     matrix a;
     a.a[1][1] = 0; a.a[1][2] = 3;
     a.a[2][1] = 1; a.a[2][2] = 2;
-    a = pow(a, n);
-    matrix b;
-    b.a[1][1] = 1; b.a[2][1] = 0;
-    b.a[1][2] = 0; b.a[2][2] = 0;
-    b = mul(a, b);
-    cout << b.a[1][1] << endl;
+    a = pow(a, n-1);
+    cout << a.a[1][1] << endl;
   //cerr << 1000 * clock() / CLOCKS_PER_SEC;
   return 0;
 }

@@ -23,14 +23,14 @@ void fre(const char *tenbai) {
 const ll INF = 1e9;
 const ll MOD = 1e9 +7;
 struct matrix {
-    ll a[3][3];
+    ll a[7][7];
 };
 matrix mul(matrix a, matrix b){
     matrix c;
-    for(int i=1; i<=2; i++){
-        for(int j=1; j<=2; j++){
+    for(int i=1; i<=6; i++){
+        for(int j=1; j<=6; j++){
             c.a[i][j] = 0;
-            for(int k=1; k<=2; k++){
+            for(int k=1; k<=6; k++){
                 c.a[i][j] = (c.a[i][j] + a.a[i][k] * b.a[k][j]) % MOD;
             }
         }
@@ -38,6 +38,15 @@ matrix mul(matrix a, matrix b){
     return c;
 }
 matrix pow(matrix a, ll n){
+    if(n==0){
+        matrix c;
+        for(int i=1; i<=6; i++){
+            for(int j=1; j<=6; j++){
+                c.a[i][j] = (i==j);
+            }
+        }
+        return c;
+    }
     if(n == 1) return a;
     matrix c = pow(a, n/2);
     c = mul(c, c);
@@ -49,14 +58,14 @@ int main() {
     ll n;
     cin >> n;
     matrix a;
-    a.a[1][1] = 0; a.a[1][2] = 3;
-    a.a[2][1] = 1; a.a[2][2] = 2;
+    a.a[1][1] = 1; a.a[1][2] = 1; a.a[1][3] = 1; a.a[1][4] = 1; a.a[1][5] = 1; a.a[1][6] = 1;
+    a.a[2][1] = 1; a.a[2][2] = 0; a.a[2][3] = 0; a.a[2][4] = 0; a.a[2][5] = 0; a.a[2][6] = 0;
+    a.a[3][1] = 0; a.a[3][2] = 1; a.a[3][3] = 0; a.a[3][4] = 0; a.a[3][5] = 0; a.a[3][6] = 0;
+    a.a[4][1] = 0; a.a[4][2] = 0; a.a[4][3] = 1; a.a[4][4] = 0; a.a[4][5] = 0; a.a[4][6] = 0;
+    a.a[5][1] = 0; a.a[5][2] = 0; a.a[5][3] = 0; a.a[5][4] = 1; a.a[5][5] = 0; a.a[5][6] = 0;
+    a.a[6][1] = 0; a.a[6][2] = 0; a.a[6][3] = 0; a.a[6][4] = 0; a.a[6][5] = 1; a.a[6][6] = 0;
     a = pow(a, n);
-    matrix b;
-    b.a[1][1] = 1; b.a[2][1] = 0;
-    b.a[1][2] = 0; b.a[2][2] = 0;
-    b = mul(a, b);
-    cout << b.a[1][1] << endl;
+    cout << a.a[1][1] % MOD << endl;
   //cerr << 1000 * clock() / CLOCKS_PER_SEC;
   return 0;
 }

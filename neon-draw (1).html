@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>✦ NEON DRAW - Không gian sáng tạo ánh sáng</title>
+  
+  <!-- Google Fonts: Orbitron & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+
+  <!-- Thư viện MediaPipe Hands -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+  <!-- Thư viện p5.js v1.9.0 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js" crossorigin="anonymous"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #030308;
+      font-family: 'Inter', sans-serif;
+      color: #ffffff;
+    }
+
+    /* Thiết lập khung nhìn camera và canvas */
+    #app-viewport {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #webcam {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.55;
+      transform: scaleX(-1); /* Lật gương camera */
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    #canvas-container {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      z-index: 2;
+    }
+
+    /* Giao diện thanh công cụ phía trên (Top Bar) */
+    .top-bar {
+      position: absolute;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 60px);
+      max-width: 1200px;
+      height: 64px;
+      background: rgba(10, 10, 18, 0.6);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: none;
+      border-radius: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      z-index: 10;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+
+    .logo-container {
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 900;
+      font-size: 18px;
+      letter-spacing: 2px;
+      background: linear-gradient(45deg, #00f5ff, #ff00ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo-spark {
+      text-shadow: 0 0 10px #00f5ff, 0 0 20px #ff00ff;
+      -webkit-text-fill-color: initial;
+      color: #ffffff;
+    }
+
+    .controls-group {
+      display: flex;
+      gap: 16px;
+    }
+
+    .btn-action {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.8);
+      padding: 8px 20px;
+      border-radius: 30px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-action:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+      border-color: rgba(255, 255, 255, 0.25);
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-undo:hover {
+      border-color: #00f5ff;
+      box-shadow: 0 0 15px rgba(0, 245, 255, 0.3);
+      color: #00f5ff;
+    }
+
+    .btn-clear:hover {
+      border-color: #ff00ff;
+      box-shadow: 0 0 15px rgba(255, 0, 255, 0.3);
+      color: #ff00ff;
+    }
+
+    /* Giao diện thanh trạng thái phía dưới (Status Bar) */
+    #status-bar {
+      position: absolute;
+      bottom: 24px;
+      left: 30px;
+      background: rgba(6, 6, 12, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 12px 24px;
+      border-radius: 16px;
+      border: none;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      color: #00f5ff;
+      letter-spacing: 1px;
+      z-index: 10;
+      transition: all 0.3s ease;
+      box-shadow: 0 0 20px rgba(0, 245, 255, 0.1);
+    }
+
+    /* Bảng hướng dẫn cử chỉ cử động (Help Box) */
+    .help-tips {
+      position: absolute;
+      bottom: 24px;
+      right: 30px;
+      background: rgba(6, 6, 12, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 16px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 0, 255, 0.15);
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.6);
+      line-height: 1.7;
+      z-index: 10;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      max-width: 280px;
+    }
+
+    .help-tips h4 {
+      font-family: 'Orbitron', sans-serif;
+      color: #ff00ff;
+      font-size: 12px;
+      margin-bottom: 8px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .help-tips ul {
+      list-style-type: none;
+    }
+
+    .help-tips li {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+
+    .help-tips li strong {
+      color: #ffffff;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 10px;
+    }
+
+    /* Màn hình tải (Loading Overlay) */
+    #loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #05050a;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      transition: opacity 0.5s ease;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 3px solid rgba(0, 245, 255, 0.1);
+      border-radius: 50%;
+      border-top-color: #00f5ff;
+      border-bottom-color: #ff00ff;
+      animation: spin 1s ease-in-out infinite;
+      margin-bottom: 20px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    #loading-overlay p {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 14px;
+      letter-spacing: 2px;
+      color: rgba(255, 255, 255, 0.7);
+    }
+  </style>
+</head>
+<body>
+
+  <div id="loading-overlay">
+    <div class="spinner"></div>
+    <p>KHỞI ĐỘNG CAMERA & AI TRACKING...</p>
+  </div>
+
+  <div id="app-viewport">
+    <!-- Camera ngầm định dạng luồng -->
+    <video id="webcam" autoplay playsinline muted></video>
+
+    <!-- Khung chứa canvas của p5.js -->
+    <div id="canvas-container"></div>
+
+    <!-- UI Điều hướng trên đỉnh -->
+    <div class="top-bar">
+      <div class="logo-container">
+        <span class="logo-spark">✦</span> NEON DRAW
+      </div>
+      <div class="controls-group">
+        <button class="btn-action btn-undo" onclick="undoLastStroke()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7v6h6M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"/></svg>
+          HOÀN TÁC
+        </button>
+        <button class="btn-action btn-clear" onclick="clearAllStrokes()">
+          ✕ XÓA HẾT
+        </button>
+      </div>
+    </div>
+
+    <!-- Thanh hiển thị trạng thái động -->
+    <div id="status-bar">HỆ THỐNG SẴN SÀNG</div>
+
+    <!-- Hướng dẫn cử chỉ nhanh -->
+    <div class="help-tips">
+      <h4>Thao tác cử chỉ</h4>
+      <ul>
+        <li><strong>VẼ NÉT:</strong> Ngón trỏ duỗi + Ngón giữa thu</li>
+        <li><strong>CỠ NÉT:</strong> Giữ ngón trỏ tại vùng TRÁI màn hình</li>
+        <li><strong>CHỌN MÀU:</strong> Giữ ngón trỏ vào ô màu vùng PHẢI (480ms)</li>
+        <li><strong>DI CHUYỂN:</strong> Nắm hờ ngón cái + ngón trỏ (Pinch)</li>
+        <li><strong>PHÁ VỠ:</strong> Nắm chặt tay ✊ rồi XÒE RA 🖐</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    // --- KHAI BÁO BIẾN TOÀN CỤC ---
+    let bgLayer; // p5.Graphics buffer lưu nét vẽ persistent
+    let strokes = []; // Mảng chứa dữ liệu các stroke vẽ [{id, points:[], color, size}]
+    let sparks = []; // Mảng chứa các hạt lửa neon khi vẽ
+    let shards = []; // Mảng chứa các mảnh vụn vỡ (Shatter effect)
+    let latestHandResults = null; // Lưu kết quả xử lý mới nhất từ MediaPipe
+
+    // Cấu hình bảng màu swatches vùng bên phải
+    const swatches = ['#00f5ff','#ff00ff','#ff6600','#00ff88','#ffff00','#ff1177','#aa44ff','#ff4400','#ffffff'];
+
+    // Trạng thái tương tác cho tối đa 2 tay [tay_0, tay_1]
+    let currentStrokeIds = [null, null];
+    let wasFist = [false, false];
+    let hoverSwatchIdx = [-1, -1];
+    let hoverStartTime = [0, 0];
+    let isPinching = [false, false];
+    let pinchedStrokeId = [null, null];
+    let lastPinchMidpoint = [{x: 0, y: 0}, {x: 0, y: 0}];
+
+    // Màu sắc và kích thước mặc định cho các tay
+    let handColors = ['#00f5ff', '#ff00ff'];
+    let handSizes = [12, 12];
+
+    // --- CÀI ĐẶT MEDIAPIPE HANDS ---
+    const videoElement = document.getElementById('webcam');
+    const hands = new Hands({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+    });
+
+    hands.setOptions({
+      maxNumHands: 2,
+      modelComplexity: 1,
+      minDetectionConfidence: 0.75,
+      minTrackingConfidence: 0.7
+    });
+
+    hands.onResults((results) => {
+      latestHandResults = results;
+    });
+
+    // Khởi tạo luồng Camera getUserMedia chuyên sâu
+    navigator.mediaDevices.getUserMedia({
+      video: {
+        width: 1280,
+        height: 720,
+        facingMode: "user"
+      }
+    }).then((stream) => {
+      videoElement.srcObject = stream;
+      videoElement.addEventListener('loadeddata', () => {
+        document.getElementById('loading-overlay').style.opacity = 0;
+        setTimeout(() => {
+          document.getElementById('loading-overlay').style.display = 'none';
+        }, 500);
+        startCameraProcessing();
+      });
+    }).catch((err) => {
+      console.error("Camera access error:", err);
+      alert("Không thể truy cập camera. Vui lòng cấp quyền truy cập và tải lại trang.");
+    });
+
+    function startCameraProcessing() {
+      async function processFrame() {
+        if (videoElement.readyState >= 2) {
+          await hands.send({ image: videoElement });
+        }
+        requestAnimationFrame(processFrame);
+      }
+      requestAnimationFrame(processFrame);
+    }
+
+    // --- KIẾN TRÚC ĐỒ HỌA p5.js ---
+    function setup() {
+      const canvas = createCanvas(windowWidth, windowHeight);
+      canvas.parent('canvas-container');
+      
+      // Tạo layer đệm lưu vết cố định để tối ưu năng suất render
+      bgLayer = createGraphics(windowWidth, windowHeight);
+      bgLayer.clear();
+      
+      frameRate(60);
+    }
+
+    function windowResized() {
+      resizeCanvas(windowWidth, windowHeight);
+      
+      // Tạo bộ nhớ tạm giữ cấu trúc hình ảnh cũ tránh mất mát khi đổi kích thước
+      let tempGfx = createGraphics(windowWidth, windowHeight);
+      tempGfx.image(bgLayer, 0, 0);
+      
+      bgLayer = createGraphics(windowWidth, windowHeight);
+      bgLayer.image(tempGfx, 0, 0);
+      
+      redrawBgLayer();
+    }
+
+    function draw() {
+      clear(); // Xóa khung hình chính để lộ nền video trong suốt phía dưới
+      
+      // 1. Vẽ layer đồ họa tĩnh (Persistent strokes) lên màn hình chính
+      image(bgLayer, 0, 0);
+      
+      // 2. Xử lý logic tương tác vật lý từ dữ liệu AI Hands
+      processHandInteractions();
+      
+      // 3. Cập nhật và kết xuất hệ thống hạt lửa neon (Sparks)
+      for (let i = sparks.length - 1; i >= 0; i--) {
+        sparks[i].update();
+        sparks[i].draw();
+        if (sparks[i].alpha <= 0) sparks.splice(i, 1);
+      }
+      
+      // 4. Cập nhật và kết xuất hệ thống mảnh vụn nổ vỡ (Shards)
+      for (let i = shards.length - 1; i >= 0; i--) {
+        shards[i].update();
+        shards[i].draw();
+        if (shards[i].alpha <= 0) shards.splice(i, 1);
+      }
+      
+      // 5. Vẽ lưới giao diện tĩnh độc quyền trên hai biên trái phải
+      drawInterfaceOverlay();
+    }
+
+    // Hàm kiến tạo nét vẽ Neon phát sáng bốc cháy đa tầng
+    function neonLine(gfx, x1, y1, x2, y2, col, sz) {
+      gfx.push();
+      gfx.strokeCap(ROUND);
+      gfx.strokeJoin(ROUND);
+      gfx.stroke(col); // Use standard flat color
+      gfx.strokeWeight(sz); // Standard thickness, no scaling for glow layers
+      gfx.line(x1, y1, x2, y2);
+      gfx.pop();
+    }
+
+    // Tái cấu trúc toàn bộ nét vẽ từ mảng lưu trữ lên đồ họa đệm
+    function redrawBgLayer() {
+      bgLayer.clear();
+      for (let s of strokes) {
+        if (s.points.length < 2) continue;
+        for (let i = 0; i < s.points.length - 1; i++) {
+          neonLine(bgLayer, s.points[i].x, s.points[i].y, s.points[i+1].x, s.points[i+1].y, s.color, s.size);
+        }
+      }
+    }
+
+    // --- KHỐI XỬ LÝ LOGIC AI & CỬ CHỈ CHI TIẾT ---
+    function processHandInteractions() {
+      let statusText = "HỆ THỐNG SẴN SÀNG — GIƠ TAY ĐỂ BẮT ĐẦU VẼ";
+      let statusColor = "#00f5ff";
+      let fistDetected = false;
+
+      if (!latestHandResults || !latestHandResults.multiHandLandmarks || latestHandResults.multiHandLandmarks.length === 0) {
+        // Không nhận diện được bàn tay nào, giải phóng các stroke đang vẽ dở
+        currentStrokeIds = [null, null];
+        updateHTMLStatus("ĐANG CHỜ TAY HOẠT ĐỘNG...", "rgba(255,255,255,0.4)");
+        return;
+      }
+
+      let activeHandsCount = latestHandResults.multiHandLandmarks.length;
+
+      for (let i = 0; i < activeHandsCount; i++) {
+        let landmarks = latestHandResults.multiHandLandmarks[i];
+        
+        // Trích xuất tọa độ các ngón và lật ảnh gương đồng nhất x = 1 - x
+        let indexTip = { x: (1 - landmarks[8].x) * width, y: landmarks[8].y * height };
+        let indexKnuckle = { x: (1 - landmarks[6].x) * width, y: landmarks[6].y * height };
+        let thumbTip = { x: (1 - landmarks[4].x) * width, y: landmarks[4].y * height };
+        let middleTip = { x: (1 - landmarks[12].x) * width, y: landmarks[12].y * height };
+        let middleKnuckle = { x: (1 - landmarks[10].x) * width, y: landmarks[10].y * height };
+        let ringTip = { x: (1 - landmarks[16].x) * width, y: landmarks[16].y * height };
+        let ringKnuckle = { x: (1 - landmarks[14].x) * width, y: landmarks[14].y * height };
+        let pinkyTip = { x: (1 - landmarks[20].x) * width, y: landmarks[20].y * height };
+        let pinkyKnuckle = { x: (1 - landmarks[18].x) * width, y: landmarks[18].y * height };
+
+        // Xác định trạng thái duỗi/thu của từng ngón tay dựa trên trục Y
+        let isIndexExtended = indexTip.y < indexKnuckle.y;
+        let isMiddleExtended = middleTip.y < middleKnuckle.y;
+        let isRingExtended = ringTip.y < ringKnuckle.y;
+        let isPinkyExtended = pinkyTip.y < pinkyKnuckle.y;
+
+        // Trạng thái Nắm tay (Fist) và Xòe tay (Open 5)
+        let isFist = !isIndexExtended && !isMiddleExtended && !isRingExtended && !isPinkyExtended;
+        let isOpen5 = isIndexExtended && isMiddleExtended && isRingExtended && isPinkyExtended;
+
+        // Xử lý Cử chỉ Phá vỡ (SHATTER EFFECT) chuyển đổi trạng thái liên tục từ Fist sang Open5
+        if (wasFist[i] && isOpen5) {
+          triggerShatterEffect();
+          wasFist[i] = false;
+          continue;
+        }
+        wasFist[i] = isFist;
+
+        if (isFist) fistDetected = true;
+
+        // Kiểm tra Khoảng cách Pinch (Nắm di chuyển nét) giữa ngón cái và ngón trỏ
+        let pinchDistance = dist(thumbTip.x, thumbTip.y, indexTip.x, indexTip.y);
+        let pinchMidpoint = { x: (thumbTip.x + indexTip.x) / 2, y: (thumbTip.y + indexTip.y) / 2 };
+        let isPinchingState = pinchDistance < 30;
+
+        // Phân lập vùng hoạt động biên màn hình
+        let isInsideLeftZone = indexTip.x <= 70;
+        let isInsideRightZone = indexTip.x >= width - 70;
+
+        if (isPinchingState) {
+          // CHẾ ĐỘ: Cầm & Di chuyển nét vẽ
+          currentStrokeIds[i] = null; // Ngắt chế độ vẽ ngay lập tức
+
+          if (!isPinching[i]) {
+            // Tìm nét vẽ có điểm gần vị trí pinch nhất trong tầm hoạt động
+            let closestStroke = null;
+            let recordDistance = 99999;
+            
+            for (let s of strokes) {
+              for (let p of s.points) {
+                let d = dist(pinchMidpoint.x, pinchMidpoint.y, p.x, p.y);
+                if (d < d && d < recordDistance) {
+                  recordDistance = d;
+                  closestStroke = s;
+                }
+              }
+            }
+
+            if (closestStroke && recordDistance < 60) {
+              isPinching[i] = true;
+              pinchedStrokeId[i] = closestStroke.id;
+              lastPinchMidpoint[i] = pinchMidpoint;
+            }
+          } else {
+            // Thực hiện di dời tọa độ tịnh tiến theo delta chuyển động ngón tay
+            let dx = pinchMidpoint.x - lastPinchMidpoint[i].x;
+            let dy = pinchMidpoint.y - lastPinchMidpoint[i].y;
+
+            let targetStroke = strokes.find(s => s.id === pinchedStrokeId[i]);
+            if (targetStroke) {
+              for (let pt of targetStroke.points) {
+                pt.x += dx;
+                pt.y += dy;
+              }
+              redrawBgLayer(); // Cập nhật lại đồ họa đệm nền
+            }
+            lastPinchMidpoint[i] = pinchMidpoint;
+          }
+
+          // Visual chỉ báo Pinch
+          push();
+          stroke('#ffff00');
+          strokeWeight(2);
+          noFill();
+          ellipse(pinchMidpoint.x, pinchMidpoint.y, 18);
+          pop();
+
+          statusText = "DI CHUYỂN NÉT VẼ TỰ DO";
+          statusColor = "#ffff00";
+
+        } else {
+          // Reset trạng thái Pinch nếu buông tay
+          isPinching[i] = false;
+          pinchedStrokeId[i] = null;
+
+          if (isInsideLeftZone) {
+            // CHẾ ĐỘ: Điều chỉnh kích thước nét vẽ (Vùng TRÁI)
+            currentStrokeIds[i] = null;
+            let mappedSize = map(indexTip.y, 0, height, 4, 45);
+            handSizes[i] = constrain(mappedSize, 4, 45);
+
+            // Vẽ vòng tròn thông báo kích cỡ trực quan tại vị trí ngón tay
+            push();
+            stroke(255, 150);
+            strokeWeight(1.5);
+            noFill();
+            ellipse(indexTip.x, indexTip.y, handSizes[i] * 2);
+            pop();
+
+            statusText = `ĐANG THAY ĐỔI CỠ NÉT: ${floor(handSizes[i])}PX`;
+            statusColor = "#00f5ff";
+
+          } else if (isInsideRightZone) {
+            // CHẾ ĐỘ: Lựa chọn màu sắc bằng Dwell Timer (Vùng PHẢI)
+            currentStrokeIds[i] = null;
+            let swatchHeight = height / 9;
+            let currentSwatchIdx = floor(indexTip.y / swatchHeight);
+
+            if (currentSwatchIdx >= 0 && currentSwatchIdx < 9) {
+              if (hoverSwatchIdx[i] === currentSwatchIdx) {
+                let elapsedTime = millis() - hoverStartTime[i];
+                let progress = constrain(elapsedTime / 480, 0, 1);
+
+                // Hiển thị vòng cung đếm ngược thời gian hover (dwell progress arc)
+                push();
+                noFill();
+                // Thin clean arc
+                stroke(255, 180); 
+                strokeWeight(2);
+                arc(indexTip.x, indexTip.y, 32, 32, -HALF_PI, -HALF_PI + progress * TWO_PI);
+                
+                // Active color indicator circle
+                noStroke();
+                fill(swatches[currentSwatchIdx]);
+                ellipse(indexTip.x, indexTip.y, 20);
+                pop();
+
+                if (progress >= 1.0) {
+                  handColors[i] = swatches[currentSwatchIdx];
+                  // Tạo hiệu ứng nổ hạt lửa nhỏ báo hiệu chuyển màu thành công
+                  for(let k=0; k<8; k++) {
+                    sparks.push(new Spark(indexTip.x, indexTip.y, handColors[i]));
+                  }
+                }
+              } else {
+                hoverSwatchIdx[i] = currentSwatchIdx;
+                hoverStartTime[i] = millis();
+              }
+            }
+
+            statusText = "CHỌN MÀU SẮC CHỦ ĐẠO";
+            statusColor = "#ff00ff";
+
+          } else if (isIndexExtended && !isMiddleExtended) {
+            // CHẾ ĐỘ CHÍNH: Vẽ nét Neon bốc cháy sinh động
+            let activeColor = handColors[i];
+            let activeSize = handSizes[i];
+
+            if (currentStrokeIds[i] === null) {
+              let newStroke = {
+                id: random(1000000),
+                points: [{ x: indexTip.x, y: indexTip.y }],
+                color: activeColor,
+                size: activeSize
+              };
+              strokes.push(newStroke);
+              currentStrokeIds[i] = newStroke.id;
+            } else {
+              let currentStroke = strokes.find(s => s.id === currentStrokeIds[i]);
+              if (currentStroke) {
+                let pointsList = currentStroke.points;
+                let lastPoint = pointsList[pointsList.length - 1];
+                
+                // Tiết giảm điểm thừa nếu ngón tay không di chuyển nhiều
+                if (dist(indexTip.x, indexTip.y, lastPoint.x, lastPoint.y) > 2) {
+                  pointsList.push({ x: indexTip.x, y: indexTip.y });
+                  // Vẽ ngay lập tức phân đoạn mới lên đồ họa đệm
+                  neonLine(bgLayer, lastPoint.x, lastPoint.y, indexTip.x, indexTip.y, activeColor, activeSize);
+                }
+              }
+            }
+
+            // Giải phóng hạt lửa bốc cháy dọc theo đường nét di chuyển ngón tay
+            if (frameCount % 2 === 0) {
+              sparks.push(new Spark(indexTip.x, indexTip.y, activeColor));
+            }
+
+            statusText = "ĐANG TẠO NÉT VẼ PHÁT SÁNG NEON";
+            statusColor = activeColor;
+
+          } else {
+            // Không thực hiện tư thế hợp lệ, kết thúc stroke hiện tại của tay này
+            currentStrokeIds[i] = null;
+            hoverSwatchIdx[i] = -1;
+
+            // Hiển thị một chấm tròn định vị trỏ chuột cơ bản
+            push();
+            noStroke();
+            fill(255, 255, 255, 140);
+            ellipse(indexTip.x, indexTip.y, 8);
+            pop();
+          }
+        }
+      }
+
+      // Trạng thái cảnh báo khẩn nếu phát hiện nắm tay chuẩn bị phá vỡ toàn cục
+      if (fistDetected) {
+        statusText = "✊ NẮM TAY — XÒE RA ĐỂ PHÁ VỠ LUỒNG SÁNG!";
+        statusColor = "#ff0055";
+      }
+
+      updateHTMLStatus(statusText, statusColor);
+    }
+
+    // Cơ chế kích nổ vỡ vụn toàn bộ nét vẽ (Shatter Effect)
+    function triggerShatterEffect() {
+      if (strokes.length === 0) return;
+
+      for (let s of strokes) {
+        let pts = s.points;
+        if (pts.length === 0) continue;
+
+        // Trích mẫu phân bổ đều ~40 điểm trên mỗi stroke để biến đổi thành mảnh vỡ mảnh vụn
+        let sampleStep = max(1, floor(pts.length / 40));
+        for (let i = 0; i < pts.length; i += sampleStep) {
+          shards.push(new Shard(pts[i].x, pts[i].y, s.color));
+        }
+      }
+
+      // Thanh lọc triệt để mảng dữ liệu và xóa tầng đồ họa đệm
+      strokes = [];
+      bgLayer.clear();
+    }
+
+    // Vẽ giao diện đồ họa phụ trợ vùng TRÁI và PHẢI màn hình
+    function drawInterfaceOverlay() {
+      // 1. Phân khu điều khiển kích thước bên TRÁI (Borderless/Clean)
+      push();
+      // Clean, low-alpha track
+      stroke(255, 20);
+      strokeWeight(2);
+      line(35, 60, 35, height - 60);
+
+      // Simple ticks
+      stroke(255, 50);
+      strokeWeight(1);
+      for (let y = 60; y <= height - 60; y += 80) {
+          line(30, y, 40, y);
+      }
+      
+      // Visualize current active hand size as a small handle indicator
+      for(let i=0; i<min(handSizes.length, latestHandResults?.multiHandLandmarks?.length || 0); i++) {
+          let y = map(handSizes[i], 4, 45, height - 60, 60);
+          fill(255); // White clean handle
+          noStroke();
+          ellipse(35, y, 10, 10);
+      }
+      pop();
+
+      // 2. Phân khu lựa chọn màu sắc bên PHẢI (Borderless/Clean)
+      push();
+      // Only draw the colors, no division line
+      let swatchHeight = height / 9;
+      for (let i = 0; i < 9; i++) {
+        let cx = width - 35;
+        let cy = (i + 0.5) * swatchHeight;
+
+        // Draw flat color squares/rectangles instead of circles
+        let rectSize = 24;
+        noStroke();
+        fill(swatches[i]);
+        rectMode(CENTER);
+        rect(cx, cy, rectSize, rectSize, 4); // Slightly rounded corners for "cool" look
+
+        // Check chosen color for both hands and highlight cleanly
+        let activeIndices = [];
+        if (handColors[0] === swatches[i]) activeIndices.push(0);
+        if (handColors[1] === swatches[i]) activeIndices.push(1);
+
+        for(let activeIdx of activeIndices) {
+            noFill();
+            stroke(255); // Clean white border
+            strokeWeight(2);
+            rect(cx + (activeIdx === 0 ? -4 : 4), cy, rectSize + 8, rectSize + 8, 6);
+        }
+      }
+      pop();
+    }
+
+    // --- CÁC KHỐI CLASS HỆ THỐNG HẠT VẬT LÝ ---
+    
+    // Hạt lửa phát sáng bốc cháy bay lên (Spark Class)
+    class Spark {
+      constructor(x, y, col) {
+        this.x = x;
+        this.y = y;
+        this.vx = random(-1.2, 1.2);
+        this.vy = random(-3.5, -1.5); // Bay hướng lên trên
+        this.col = col;
+        this.alpha = 255;
+        this.decay = random(6, 12); // Tốc độ lụi tàn
+        this.size = random(4, 8);
+      }
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += 0.04; // Trọng lực nhẹ kéo ngược về sau khi bốc lên cao
+        this.alpha -= this.decay;
+      }
+      draw() {
+        push();
+        noStroke();
+        fill(colorWithAlpha(this.col, this.alpha / 255));
+        ellipse(this.x, this.y, this.size);
+        pop();
+      }
+    }
+
+    // Mảnh vỡ hình học phát sáng nổ tung (Shard Class)
+    class Shard {
+      constructor(x, y, col) {
+        this.x = x;
+        this.y = y;
+        // Vectơ vận tốc phát tán đa hướng ngẫu nhiên cực đại
+        this.vx = random(-7, 7);
+        this.vy = random(-9, 3);
+        this.col = col;
+        this.alpha = 255;
+        this.decay = random(3, 6);
+        this.angle = random(TWO_PI);
+        this.rotationSpeed = random(-0.08, 0.08);
+        this.sides = floor(random(3, 6)); // Tạo hình đa giác ngẫu nhiên 3 đến 5 cạnh
+        this.radius = random(10, 22);
+      }
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += 0.28; // Tác động gia tốc trọng lực mạnh rơi xuống dữ dội
+        this.angle += this.rotationSpeed;
+        this.alpha -= this.decay;
+      }
+      draw() {
+        push();
+        translate(this.x, this.y);
+        rotate(this.angle);
+        
+        noStroke();
+        fill(colorWithAlpha(this.col, this.alpha / 255)); // Flat fill color
+        
+        beginShape();
+        for (let i = 0; i < this.sides; i++) {
+          let a = (TWO_PI / this.sides) * i;
+          let px = cos(a) * this.radius;
+          let py = sin(a) * this.radius;
+          vertex(px, py);
+        }
+        endShape(CLOSE);
+
+        pop();
+      }
+      renderPolygon() {
+        beginShape();
+        for (let i = 0; i < this.sides; i++) {
+          let a = (TWO_PI / this.sides) * i;
+          let px = cos(a) * this.radius;
+          let py = sin(a) * this.radius;
+          vertex(px, py);
+        }
+        endShape(CLOSE);
+      }
+    }
+
+    // --- CÁC HÀM TIỆN ÍCH HỖ TRỢ VÀ ĐIỀU KHIỂN DOM ---
+    function colorWithAlpha(hexStr, alphaAlpha) {
+      let c = color(hexStr);
+      return color(red(c), green(c), blue(c), alphaAlpha * 255);
+    }
+
+    function undoLastStroke() {
+      if (strokes.length > 0) {
+        strokes.pop();
+        redrawBgLayer();
+      }
+    }
+
+    function clearAllStrokes() {
+      strokes = [];
+      bgLayer.clear();
+    }
+
+    function updateHTMLStatus(text, colorCss) {
+      const statusBar = document.getElementById('status-bar');
+      if (statusBar) {
+        statusBar.innerText = text;
+        statusBar.style.color = colorCss;
+        statusBar.style.borderColor = colorCss;
+        statusBar.style.boxShadow = 'none';
+      }
+    }
+  </script>
+</body>
+</html>

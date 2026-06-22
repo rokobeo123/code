@@ -22,41 +22,10 @@ void fre(const char *tenbai) {
 }
 const ll INF = 1e9;
 const ll MOD = 1e9 +7;
-struct matrix {
-    ll a[3][3];
-};
-matrix mul(matrix a, matrix b){
-    matrix c;
-    for(int i=1; i<=2; i++){
-        for(int j=1; j<=2; j++){
-            c.a[i][j] = 0;
-            for(int k=1; k<=2; k++){
-                c.a[i][j] = (c.a[i][j] + a.a[i][k] * b.a[k][j]) % MOD;
-            }
-        }
-    }
-    return c;
-}
-matrix pow(matrix a, ll n){
-    if(n == 1) return a;
-    matrix c = pow(a, n/2);
-    c = mul(c, c);
-    if(n % 2) c = mul(c, a);
-    return c;
-}
+
 int main() {
   fasteio();
-    ll n;
-    cin >> n;
-    matrix a;
-    a.a[1][1] = 0; a.a[1][2] = 3;
-    a.a[2][1] = 1; a.a[2][2] = 2;
-    a = pow(a, n);
-    matrix b;
-    b.a[1][1] = 1; b.a[2][1] = 0;
-    b.a[1][2] = 0; b.a[2][2] = 0;
-    b = mul(a, b);
-    cout << b.a[1][1] << endl;
+  
   //cerr << 1000 * clock() / CLOCKS_PER_SEC;
   return 0;
 }
